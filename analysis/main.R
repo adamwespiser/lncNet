@@ -40,7 +40,8 @@ list.of.packages <- c(
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
-if (!"gbm" %in% installed.packages()) {
+if (!("gbm" %in% installed.packages()) && "devtools" %in% install.packages()) {
+  library(devtools)
   install_url("http://cran.r-project.org/src/contrib/Archive/gbm/gbm_2.0-8.tar.gz")
 }
 
@@ -68,4 +69,12 @@ registerDoParallel(10)
 
 ## load in other libs
 source(getFullPath("analysis/dataInput.R"))
-source(getFullPath("analysis/plotResults.R"))
+#source(getFullPath("analysis/plotResults.R"))
+
+
+convertK562gtf <- function(){
+  convertGtfFile(file=k562.cyt.pap,outfile=k562.cyt.pap.tab)
+  convertGtfFile(file=k562.nuc.pap,outfile=k562.nuc.pap.tab)
+}
+
+
