@@ -8,12 +8,45 @@ gtex.gene.head <<- getDataFile("GTExGeneRPKM.gct")
 k562.nuc.pap <<- getDataFile("wgEncodeCshlLongRnaSeqK562NucleusPapTranscriptGencV7.gtf")
 k562.nuc.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqK562NucleusPapTranscriptGencV7.tab")
 k562.cyt.pap <<- getDataFile("wgEncodeCshlLongRnaSeqK562CytosolPapTranscriptGencV7.gtf")
-k562.cyt.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqK562CytosolPapTranscriptGencV7.gtf")
+k562.cyt.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqK562CytosolPapTranscriptGencV7.tab")
+IMR.cyt.pap <<-     getDataFile("wgEncodeCshlLongRnaSeqImr90CytosolPapTranscriptGencV10.gtf")
+IMR.cyt.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqImr90CytosolPapTranscriptGencV10.tab")
+IMR.nuc.pap <<-     getDataFile("wgEncodeCshlLongRnaSeqImr90NucleusPapTranscriptGencV10.gtf")
+IMR.nuc.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqImr90NucleusPapTranscriptGencV10.tab")
+
+convertENCODEGtfToTab <- function(gtfFile=k562.cyt.pap,tabFile=k562.cyt.pap.tab){
+  system( paste("cat",gtfFile," | sed 's/[;\"]//g' |awk -F' ' '{print $2,$1,$4,$5,$10,$12,$6,$14,$16,$18}' > ",tabFile))
+  
+}
+
+convertENCODEGtfsToTab <- function(){
+  convertGtfToTab(k562.nuc.pap,k562.nuc.pap.tab)
+  convertGtfToTab(k562.cyt.pap,k562.cyt.pap.tab)
+  convertGtfToTab(IMR.cyt.pap,IMR.cyt.pap.tab)
+  convertGtfToTab(IMR.nuc.pap,IMR.nuc.pap.tab)
+}
+
+readInENCODEGtfToTab <- function(file=IMR.nuc.pap.tab){
+  ccol <- c("character","character", "numeric", "numeric","character", "character", rep("numeric",4))
+  df <- read.csv(file=file, sep=" ", stringsAsFactors=FALSE,
+                colClasses=ccol)
+  colnames(df) <- c("version", "chr", "start", "stop", "gene_id", "transcript_id", "COMB", "RPKK1",
+                    "RPKM2", "IDR")
+}
 
 
 getGTExAnnot <- function(file=gtex.annot){
   df <- read.csv(file,sep="\t",stringsAsFactors=FALSE)
   df$SAMPID <- as.character(sapply(df$SAMPID, function(x)gsub(x=x,pattern="[\\_\\-]",replacement="\\.")))
+  df
+}
+
+getGTExAnnotExpr <- function(file=gtex.annot){
+  df <- read.csv(file,sep="\t",stringsAsFactors=FALSE)
+  df$SAMPID <- as.character(sapply(df$SAMPID, function(x)gsub(x=x,pattern="[\\_\\-]",replacement="\\.")))
+  
+  df <- df[grep("RNA", df$SMNABTCHT),]
+  df <- df[which(df$SAMPID %in% getGTExGeneExprCols()),]
   df
 }
 
@@ -26,13 +59,16 @@ getAnnotColNames <- function(file=gtex.annot){
   colnames(df)
 }
 
+# cols can be either c("SMTS", "SMTSD")
 getAnnotColTable <- function(file=gtex.annot,col="SMTS"){
-  df <- read.csv(file=gtex.annot,sep="\t")
+  df <- getGTExAnnotExpr()
   table(df[[col]])
 }
 
+# example c("Nerve", "SMTS")
 getGTExColsByAnnot <- function(query,colName="SMTS"){
   annot.df <- getGTExAnnot()
+
   if(!colName %in% colnames(annot.df)){
     stop("Colname not found in annotations")
   }
@@ -45,9 +81,10 @@ getGTExColsByAnnot <- function(query,colName="SMTS"){
   }
 }
 
+#expr.df <- getGeneExprForColMatch("Cells - Leukemia cell line (CML)", "SMTSD")
 getGeneExprForColMatch <- function(query,colName="SMTS"){
   expr.cols <- getGTExGeneExprCols()
-  colFound <- expr.cols %in% getGTExColsByAnnot(query,colName="SMTS")
+  colFound <- expr.cols %in% getGTExColsByAnnot(query,colName=colName)
   readCols <- c(NA,NA,ifelse(colFound == TRUE,NA,'NULL'))
   read.csv(file=gtex.gene.expr,stringsAsFactors=FALSE,colClasses=readCols,sep="\t")
 }
@@ -69,7 +106,7 @@ shortenIdVec <- function(gene_id, sep = "\\."){
 
 convertGtfFile <- function(file=k562.cyt.pap,outfile=k562.cyt.pap.tab){
   
-  d.ens <- read.csv(file=f,sep="\t",header=FALSE,
+  d.ens <- read.csv(file=file,sep="\t",header=FALSE,
                 colClasses=(c(rep('NULL',8), "character")),stringsAsFactors=FALSE)
   df <- do.call(rbind,lapply(d.ens$V9,function(x)convertToDf(x,"; ", " ",";")))
   
@@ -87,4 +124,8 @@ convertGtfFile <- function(file=k562.cyt.pap,outfile=k562.cyt.pap.tab){
   colnames(d.first) <- c("chr","source","type","start","stop","COMB","strand")
   exportAsTable(file=outfile,cbind(d.first,df))
 }
+# file=k562.cyt.pap,outfile=k562.cyt.pap.tab
+
+
+
 
