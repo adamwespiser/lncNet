@@ -14,6 +14,25 @@ IMR.cyt.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqImr90CytosolPapTranscript
 IMR.nuc.pap <<-     getDataFile("wgEncodeCshlLongRnaSeqImr90NucleusPapTranscriptGencV10.gtf")
 IMR.nuc.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqImr90NucleusPapTranscriptGencV10.tab")
 
+fibroFile <<- getDataFile("transformedFibroblastsGTEx.tab")
+gencode.pc <<- getDataFile("gencodeV12.proteinCoding.gene.tab")
+gencode.lnc <<- getDataFile("gencodeV12.procTranLinc.gene.tab")
+
+getLncGenesV12 <- function(file = gencode.lnc){
+  df <- read.csv(file=file, sep=" ", header=FALSE,colClass=c("character",'NULL',"character",'NULL'))
+  colnames(df) <- c("gene_id","biotype")
+  df$gene_id_short <- shortenIdVec(df$gene_id)
+  df
+}
+
+getPcGenesV12 <- function(file = gencode.pc){
+  df <- read.csv(file=file, sep=" ", header=FALSE,colClass=c("character",'NULL',"character",'NULL'))
+  colnames(df) <- c("gene_id","biotype")
+  df$gene_id_short <- shortenIdVec(df$gene_id)
+  df
+}
+
+
 convertENCODEGtfToTab <- function(gtfFile=k562.cyt.pap,tabFile=k562.cyt.pap.tab){
   system( paste("cat",gtfFile," | sed 's/[;\"]//g' |awk -F' ' '{print $2,$1,$4,$5,$10,$12,$6,$14,$16,$18}' > ",tabFile))
   
@@ -66,8 +85,9 @@ getAnnotColTable <- function(file=gtex.annot,col="SMTS"){
 }
 
 # example c("Nerve", "SMTS")
+# getGTExColsByAnnot(query="Cells - Transformed fibroblasts",colName="SMTSD")
 getGTExColsByAnnot <- function(query,colName="SMTS"){
-  annot.df <- getGTExAnnot()
+  annot.df <- getGTExAnnotExpr()
 
   if(!colName %in% colnames(annot.df)){
     stop("Colname not found in annotations")
@@ -82,6 +102,8 @@ getGTExColsByAnnot <- function(query,colName="SMTS"){
 }
 
 #expr.df <- getGeneExprForColMatch("Cells - Leukemia cell line (CML)", "SMTSD")
+# getGeneExprForColMatch(query="Cells - Transformed fibroblasts",colName="SMTSD")
+
 getGeneExprForColMatch <- function(query,colName="SMTS"){
   expr.cols <- getGTExGeneExprCols()
   colFound <- expr.cols %in% getGTExColsByAnnot(query,colName=colName)
@@ -104,6 +126,16 @@ shortenIdVec <- function(gene_id, sep = "\\."){
   as.character(sapply(gene_id, function(x)unlist(strsplit(x,split=sep))[1]))
 }
 
+
+
+saveTranFibro <- function(fibroFile = ){
+expr.df <-  getGeneExprForColMatch(query="Cells - Transformed fibroblasts",colName="SMTSD")
+exportAsTable(file=fibroFile,df=expr.df)
+}
+
+
+
+### DONT USE, really slow on 160k -> use cat/sed/awk scheme instead...
 convertGtfFile <- function(file=k562.cyt.pap,outfile=k562.cyt.pap.tab){
   
   d.ens <- read.csv(file=file,sep="\t",header=FALSE,
