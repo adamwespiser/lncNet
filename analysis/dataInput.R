@@ -13,6 +13,7 @@ IMR.cyt.pap <<-     getDataFile("wgEncodeCshlLongRnaSeqImr90CytosolPapTranscript
 IMR.cyt.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqImr90CytosolPapTranscriptGencV10.tab")
 IMR.nuc.pap <<-     getDataFile("wgEncodeCshlLongRnaSeqImr90NucleusPapTranscriptGencV10.gtf")
 IMR.nuc.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqImr90NucleusPapTranscriptGencV10.tab")
+IMR.comb.expr   <<- getDataFile("ImrCytNucTopCombRnaExprTransByGene.tab")
 
 fibroFile <<- getDataFile("transformedFibroblastsGTEx.tab")
 gencode.pc <<- getDataFile("gencodeV12.proteinCoding.gene.tab")
@@ -47,10 +48,11 @@ convertENCODEGtfsToTab <- function(){
 
 readInENCODEGtfToTab <- function(file=IMR.nuc.pap.tab){
   ccol <- c("character","character", "numeric", "numeric","character", "character", rep("numeric",4))
-  df <- read.csv(file=file, sep=" ", stringsAsFactors=FALSE,
+  df <- read.csv(file=file, sep=" ", stringsAsFactors=FALSE, header=FALSE,
                 colClasses=ccol)
   colnames(df) <- c("version", "chr", "start", "stop", "gene_id", "transcript_id", "COMB", "RPKK1",
                     "RPKM2", "IDR")
+  df
 }
 
 
@@ -128,7 +130,7 @@ shortenIdVec <- function(gene_id, sep = "\\."){
 
 
 
-saveTranFibro <- function(fibroFile = ){
+saveTranFibro <- function(fibroFile = fibroFile ){
 expr.df <-  getGeneExprForColMatch(query="Cells - Transformed fibroblasts",colName="SMTSD")
 exportAsTable(file=fibroFile,df=expr.df)
 }
@@ -158,6 +160,32 @@ convertGtfFile <- function(file=k562.cyt.pap,outfile=k562.cyt.pap.tab){
 }
 # file=k562.cyt.pap,outfile=k562.cyt.pap.tab
 
+loadInIMRdata <- function(cyt.file=IMR.cyt.pap.tab,nuc.file=IMR.nuc.pap.tab,outfile=IMR.comb.expr ){
+  cyt.df <- readInENCODEGtfToTab(file=cyt.file)
+  nuc.df <- readInENCODEGtfToTab(file=nuc.file)
+  cyt.cols <- colnames(cyt.df)
+  nuc.cols <- colnames(nuc.df)
+  colnames(cyt.df)[7:10] <- paste0(colnames(cyt.df)[7:10],".cyt")
+  colnames(nuc.df)[7:10] <- paste0(colnamess(nuc.df)[7:10],".nuc")
+  imr.df <- merge(cyt.df[6:10],nuc.df[5:10],by="transcript_id",all=TRUE)
+  imr.idr.df <- imr.df[which(imr.df$IDR.nuc < 0.1 & imr.df$IDR.cyt < 0.1 &
+                               !is.na(imr.df$IDR.cyt) & !is.na(imr.df$IDR.cyt) &
+                               imr.df$IDR.nuc != 0 & imr.df$IDR.cyt != 0),]
+  
+  imr.idr.df$COMB.sum <- imr.idr.df$COMB.nuc + imr.idr.df$COMB.cyt
+  getTranscriptForMaxCols <- function(t1)cast(ldply(apply(t1,2,function(x)t1[which(x == max(x)),"transcript_id"]),function(x)x[1]), ~ .id )
+  lnc.expr.maxTransGeneCol.d <- suppressWarnings(ldply(split(imr.idr.df,imr.idr.df$gene_id),getTranscriptForMaxCols))
+  trans.vec <- as.character(levels(lnc.expr.maxTransGeneCol.d$COMB.sum))
+  imr.max.trans <- imr.idr.df[which(imr.idr.df$transcript_id %in% trans.vec),]
+  exportAsTable(df =imr.max.trans,file=outfile)
+}
+
+getCombinedImrData <- function(){
+  df <- readInTable(file=IMR.comb.expr)
+  lnc.genes <- getLncGenesV12()
+  pc.genes  <- getPcGenesV12()
+  df$
+}
 
 
 
