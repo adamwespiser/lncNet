@@ -159,15 +159,18 @@ convertGtfFile <- function(file=k562.cyt.pap,outfile=k562.cyt.pap.tab){
   exportAsTable(file=outfile,cbind(d.first,df))
 }
 # file=k562.cyt.pap,outfile=k562.cyt.pap.tab
-
-loadInIMRdata <- function(cyt.file=IMR.cyt.pap.tab,nuc.file=IMR.nuc.pap.tab,outfile=IMR.comb.expr ){
+mergeENCODEexpr <- function (cyt.file=IMR.cyt.pap.tab,nuc.file=IMR.nuc.pap.tab) {
   cyt.df <- readInENCODEGtfToTab(file=cyt.file)
   nuc.df <- readInENCODEGtfToTab(file=nuc.file)
   cyt.cols <- colnames(cyt.df)
   nuc.cols <- colnames(nuc.df)
   colnames(cyt.df)[7:10] <- paste0(colnames(cyt.df)[7:10],".cyt")
   colnames(nuc.df)[7:10] <- paste0(colnamess(nuc.df)[7:10],".nuc")
-  imr.df <- merge(cyt.df[6:10],nuc.df[5:10],by="transcript_id",all=TRUE)
+  merge(cyt.df[6:10],nuc.df[5:10],by="transcript_id",all=TRUE)
+}
+
+loadInCytNucdata <- function(cyt.file=IMR.cyt.pap.tab,nuc.file=IMR.nuc.pap.tab,outfile=IMR.comb.expr ){
+  imr.df <- mergeENCODEexpr(cyt.file, nuc.file)
   imr.idr.df <- imr.df[which(imr.df$IDR.nuc < 0.1 & imr.df$IDR.cyt < 0.1 &
                                !is.na(imr.df$IDR.cyt) & !is.na(imr.df$IDR.cyt) &
                                imr.df$IDR.nuc != 0 & imr.df$IDR.cyt != 0),]
@@ -180,11 +183,12 @@ loadInIMRdata <- function(cyt.file=IMR.cyt.pap.tab,nuc.file=IMR.nuc.pap.tab,outf
   exportAsTable(df =imr.max.trans,file=outfile)
 }
 
-getCombinedImrData <- function(){
-  df <- readInTable(file=IMR.comb.expr)
+getCombinedCytNucData <- function(file=IMR.comb.expr){
+  df <- readInTable(file)
   lnc.genes <- getLncGenesV12()
   pc.genes  <- getPcGenesV12()
-  df$
+  lncIMR.df <- imr.df[which(imr.df$gene_id %in% lnc.genes$gene_id),]
+  lncIMR.df$ratio <- lncIMR.df$COMB.cyt/lncIMR.df$COMB.nuc 
 }
 
 
