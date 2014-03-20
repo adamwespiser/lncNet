@@ -79,3 +79,11 @@ convertK562gtf <- function(){
 }
 
 
+
+mergeAllCytNucV7 <- function(){
+  mergeExprFiles(outfile = rnaexpr.comb.v7, gencodeVersion = "v7")
+  mergeExprFiles(outfile = rnaexpr.comb.v10, gencodeVersion = "v10")
+  
+}
+
+
