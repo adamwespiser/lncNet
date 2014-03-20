@@ -1,6 +1,9 @@
 homeFolder <- path.expand("~")
 getDataFile <- function(subpath){file.path(homeFolder, "data", subpath)}
 
+local.datadir <<- "/home/wespisea/data/"
+
+cshl.rnaseq.dir <<- "http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeCshlLongRnaSeq/"
 
 gtex.annot <<- getDataFile("GTExSampleAnnot.tab")
 gtex.gene.expr <<- getDataFile("GTExGeneRPKM.gct")
@@ -124,6 +127,31 @@ convertToDf <- function(str,recSep,labelSep,valRm=""){
   as.data.frame(l)
 }
 
+convertToDfWithCols <- function(str,recSep,labelSep,valRm="",cols){
+  records <- as.character(unlist(strsplit(str, recSep)))
+  nms <- as.character(unlist(sapply(records, function(x)unlist(strsplit(x, labelSep))[1])))
+  vals <- as.character(unlist(sapply(records, function(x)unlist(strsplit(x, labelSep))[2])))
+  # vals <- sapply(vals, function(x)gsub(x,";",""))
+  l <- as.list(vals)
+  names(l) <- nms 
+  df <- as.data.frame(l)
+  cols.notfound <- cols[-which(cols %in% nms)]
+  for ( i in cols.notfound){
+    df[[i ]] <- NA
+  }
+  df
+}
+
+
+convertToList <- function(str,recSep,labelSep,valRm=""){
+  records <- as.character(unlist(strsplit(str, recSep)))
+  nms <- as.character(unlist(sapply(records, function(x)unlist(strsplit(x, labelSep))[1])))
+  vals <- as.character(unlist(sapply(records, function(x)unlist(strsplit(x, labelSep))[2])))
+  # vals <- sapply(vals, function(x)gsub(x,";",""))
+  l <- as.list(vals)
+  names(l) <- nms 
+l}
+
 shortenIdVec <- function(gene_id, sep = "\\."){
   as.character(sapply(gene_id, function(x)unlist(strsplit(x,split=sep))[1]))
 }
@@ -190,6 +218,174 @@ getCombinedCytNucData <- function(file=IMR.comb.expr){
   lncIMR.df <- imr.df[which(imr.df$gene_id %in% lnc.genes$gene_id),]
   lncIMR.df$ratio <- lncIMR.df$COMB.cyt/lncIMR.df$COMB.nuc 
 }
+
+
+
+
+fetchEncodeDccFilesText <- function(filesTxt="~/data/wgEncodeCshlLongRnaSeqFiles.txt",
+                                    filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab"){
+  if (!file.exists(filesTxt)){
+    download.file("http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeCshlLongRnaSeq/files.txt",dest=fileTxt)
+  }
+  
+  d <- readLines(filesTxt)
+  d.split <- lapply(d, function(x)strsplit(x,split="\t"))
+  d.names <- sapply(d.split, function(x)unlist(x)[1])
+  d.info <- sapply(d.split, function(x)unlist(x)[2])
+  d.list <- lapply(d.info,function(x)convertToList(x,"; ", "=",";"))
+  colAnnot <-  unique(do.call("c",lapply(d.list, function(x)names(x))))
+  df <- do.call(rbind,lapply(d.info,function(x)convertToDfWithCols(x,"; ", "=",";",cols=colAnnot)))
+  df$filename <- d.names
+  
+  exportAsTable(df=df,file=filesTxtTab)
+}
+
+
+getFilesTxt <- function(filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",rnaExtract="longPolyA"){
+  if(!file.exists(filesTxtTab)){
+    fetchEncodeDccFilesText()
+  }
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df <- df[which(!is.na(df$tableName) & df$type == "gtf" & df$rnaExtract == rnaExtract & (df$cell %in% cytNuc.celltypes)),]
+  df$localfile <- sapply(df$file, function(x)gsub(x,pattern="\\.gz", replacement=""))
+  df$tabfile <- sapply(df$localfile, gtfToTabFilename)
+  df$rnaExtractShort <- getRnaExtractShort(df$rnaExtract)
+  df$cellShort <- sapply(df$cell, function(x)gsub(x, pattern="[-_]", replacement=""))
+  df$headerMsg <- apply(df, 1,function(x)paste(x[["cellShort"]], x[["rnaExtractShort"]], x[["localization"]],sep="."))
+  df$gencode <- tolower(str_extract(df$view,"(V[0-9][0-9]*)|DeNovo"))
+  df$mappingTarget <- as.character(str_match(tolower(df$view),"gene|transcript|exon|fastq"))
+  df
+}
+
+
+getRnaExtractShort <- function(rnaExtractFn){
+  vec <- ifelse(rnaExtractFn == "longPolyA", "lpa", rnaExtractFn)
+  ifelse(vec == "longNonPolyA", "lnpa",vec)
+  
+}
+
+
+getNucCytoExpr <- function(outfile="~/data/nucCytoEncodeExprFiles.tab",rnaExtract="longPolyA"){
+  if(!(rnaExtract %in% c("longPolyA", "longNonPolyA"))){
+    stop("rnaExtract must be either <longPolyA> or <longNonPolyA>")
+  }
+  df <- getFilesTxt(rnaExtract=rnaExtract)
+  df.gtf <- df[which(df$type == "gtf" & df$rnaExtract == rnaExtract),]
+  nuc.df <- unique(df.gtf[which(df.gtf$localization == "nucleus"),])
+  cyt.df <- unique(df.gtf[which(df.gtf$localization == "cytosol"), ])
+  cytNuc.celltypes <- unique(cyt.df$cell[cyt.df$cell %in% nuc.df$cell])
+  cytnuc.df <- df[which(!is.na(df$tableName) & df$type == "gtf" & df$rnaExtract == rnaExtract & (df$cell %in% cytNuc.celltypes)),]
+  cytnuc.df
+}
+
+
+downloadCytNuc <- function(){
+  cytnuc.df <- getNucCytoExpr()
+  gatherGzipFilesFromWeb(datadir="/home/wespisea/data/",url.base= cshl.rnaseq.dir, url.file=cytnuc.df$filename)
+}
+
+
+gatherGzipFilesFromWeb <- function(datadir = local.datadir,
+                              url.base = cshl.rnaseq.dir,
+                              url.files){
+  if (missing(datadir)){
+    datadir <- garber.base.dir
+  }
+  if (!file.exists(datadir)){
+    dir.create(datadir,recursive=TRUE)
+  }
+  
+  print(datadir)
+  url.vec <- paste0(url.base, url.files)
+  temp.vec <- sapply(seq_along(url.vec),function(x) tempfile())
+  
+  invisible(sapply(seq_along(url.vec),function(x)download.file(url=url.vec[x],destfile=temp.vec[x])))
+   
+  invisible(sapply(seq_along(url.vec), 
+                   function(i)write(readLines(con=gzfile(temp.vec[i]),n=-1),
+                                    file=paste(datadir,"/",sub(x=url.files[i],pattern=".gz",replacement=""),sep=""))))
+  
+ 
+  
+  invisible(sapply(seq_along(url.vec), function(i)unlink(temp.vec[i])))
+}
+
+gtfToTabFilename <- function(filename, datadir = local.datadir){
+  nogz <- gsub(x=filename, pattern="\\.gz$",replacement="")
+  tabfile <- gsub(x=nogz, pattern="\\.gtf$",replacement="\\.tab")
+  
+}
+
+parseENCODEGtf <- function(gtfFile,tabFile,headerMsg){
+  if(!file.exists(gtfFile)){
+    stop("gtfFile not found")
+  }
+  if(file.exists(tabFile)){
+    unlink(tabFile) 
+  }
+  header <- c("COMB", "RPKM1", "RPKM2", "IDR")
+  header.title <- paste0(header,".", headerMsg)
+  header.title.out <- do.call(paste,as.list(c("id", header.title)))
+  tmp.cat <- tempfile()
+  tmp.tab <- tempfile()
+  system(paste("echo '", header.title.out,"' > ", tmp.cat, sep=""))
+  system(paste("sed 's/[;\"]//g' ",gtfFile," | awk -F' ' '{print $12,$6,$14,$16,$18}' | sort -r> ",tmp.tab,sep=""))
+  
+  #cmd <- paste("cat <(echo ",header.title.out,") <(sed 's/[;\"]//g' ",gtfFile," | awk -F' ' '{print $12,$6,$14,$16,$18}' | sort) > ",tabFile,sep="")
+  print(cmd)
+  cmd <- paste("cat ",tmp.cat,tmp.tab,">",tabFile,sep=" ")
+ system(cmd )
+  unlink(tmp.cat)
+  unlink(tmp.tab)
+  #system(paste("cat ", tmp.cat, tmp.tab, ""))
+}
+
+
+systemJoin <- function(file1, file2, outfile){
+  if(!file.exists("/usr/bin/join")){
+    stop("cannot find join command in /usr/bin/join")
+  }
+  cmd <- paste("/usr/bin/join", file1, file2, ">",outfile,sep=" ")
+  print(cmd)
+  system(cmd)
+}
+
+mergeExprFiles <- function( df, outfile){
+  if(missing(df)){
+    df <- getNucCytoExpr()
+  }
+  if(missing(outfile)){
+    outfile <- getDataFile("encodeRnaSeqCshllpa.space")
+  }
+  
+  
+  df$localfile <- sapply(df$localfile, getDataFile)
+  df$tabfile <- sapply(df$tabfile, getDataFile)
+  
+  #make short tab files
+  for(i in seq_along(df$localfile)){
+    parseENCODEGtf(gtfFile = df$localfile[i], tabFile = df$tabfile[i],headerMsg=df$headerMsg[i])
+  }
+  
+  #dd <- read.csv(file=tabFile, sep=" ", stringsAsFactors=FALSE)
+
+  tmp <- tempfile()
+  tmp1 <- tempfile()
+  file.copy(from = df$tabfile[1], to = tmp)
+  for( i in 2:length(df$tabfile)){
+    systemJoin(file1 = tmp, file2 = df$tabfile[i], outfile = tmp1)
+    file.copy(from = tmp1, to = tmp)
+  }
+  file.copy(from=tmp, to = outfile)
+  
+  unlink(tmp)
+  unlink(tmp1)
+  
+}
+
+
+
+
 
 
 

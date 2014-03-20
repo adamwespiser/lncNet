@@ -35,7 +35,8 @@ list.of.packages <- c(
   "gam",
   "reshape2", # needed for melt
   "MASS",
-  "devtools" # for github installs
+  "devtools", # for github installs
+  "stringr"
 )
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
