@@ -1,12 +1,24 @@
 homeFolder <- path.expand("~")
 getDataFile <- function(subpath){file.path(homeFolder, "data", subpath)}
+projectDir <- normalizePath(file.path(script.dir(), ".."))
+getFullPath <- function(subpath){ file.path(projectDir, subpath) }
+
+source(getFullPath("analysis/gencodeInput.R"))
+
 
 local.datadir <<- "/home/wespisea/data/"
 
 cshl.remove.rnaseq <<- c("wgEncodeCshlLongRnaSeqNhekCellPapTranscriptGencV7Rep5.gtf.gz","wgEncodeCshlLongRnaSeqNhekCellPamTranscriptGencV7Rep5.gtf.gz")
 
 rnaexpr.comb.v7 <<-  getDataFile("cshl-rnaSeq-v7-allcombined.space")
+rnaexpr.comb.v7.cast <<-  getDataFile("cshl-rnaSeq-v7-allcombined-cast.space")
+rnaexpr.comb.v7.maxTrans <<-  getDataFile("cshl-rnaSeq-v7-allcombined-maxTrans.space")
+
+
 rnaexpr.comb.v10 <<-  getDataFile("cshl-rnaSeq-v10-allcombined.space")
+rnaexpr.comb.v10.cast <<-  getDataFile("cshl-rnaSeq-v10-allcombined-cast.space")
+rnaexpr.comb.v10.maxTrans <<-  getDataFile("cshl-rnaSeq-v10-allcombined-maxTrans.space")
+
 
 cshl.rnaseq.dir <<- "http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeCshlLongRnaSeq/"
 
@@ -24,22 +36,6 @@ IMR.nuc.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqImr90NucleusPapTranscript
 IMR.comb.expr   <<- getDataFile("ImrCytNucTopCombRnaExprTransByGene.tab")
 
 fibroFile <<- getDataFile("transformedFibroblastsGTEx.tab")
-gencode.pc <<- getDataFile("gencodeV12.proteinCoding.gene.tab")
-gencode.lnc <<- getDataFile("gencodeV12.procTranLinc.gene.tab")
-
-getLncGenesV12 <- function(file = gencode.lnc){
-  df <- read.csv(file=file, sep=" ", header=FALSE,colClass=c("character",'NULL',"character",'NULL'))
-  colnames(df) <- c("gene_id","biotype")
-  df$gene_id_short <- shortenIdVec(df$gene_id)
-  df
-}
-
-getPcGenesV12 <- function(file = gencode.pc){
-  df <- read.csv(file=file, sep=" ", header=FALSE,colClass=c("character",'NULL',"character",'NULL'))
-  colnames(df) <- c("gene_id","biotype")
-  df$gene_id_short <- shortenIdVec(df$gene_id)
-  df
-}
 
 
 convertENCODEGtfToTab <- function(gtfFile=k562.cyt.pap,tabFile=k562.cyt.pap.tab){
@@ -301,12 +297,11 @@ getNucCytoExpr <- function(outfile="~/data/nucCytoEncodeExprFiles.tab",rnaExtrac
 
 
 downloadCytNuc <- function(df){
+  cytnuc.df <- df
   if(missing(df)){
-    cytnuc.df <- df
-  } else {
     cytnuc.df <- getNucCytoExpr()
   }
-  gatherGzipFilesFromWeb(datadir=getDataFile(""),url.base= cshl.rnaseq.dir, url.file=cytnuc.df$filename)
+  gatherGzipFilesFromWeb(datadir=getDataFile(""),url.base= cshl.rnaseq.dir, url.files=cytnuc.df$filename)
 }
 
 
@@ -322,13 +317,22 @@ gatherGzipFilesFromWeb <- function(datadir = local.datadir,
   
   print(datadir)
   url.vec <- paste0(url.base, url.files)
-  temp.vec <- sapply(seq_along(url.vec),function(x) tempfile())
+  ### TODO 
+  # pull out seq_along(url.vec), and only download files that don't match checksums of localfiles
+  # also, write force override
+  download.index.all <- seq_along(url.vec)
+  target.files <- sapply(seq_along(url.vec),function(i)paste(datadir,"/",sub(x=url.files[i],pattern=".gz",replacement=""),sep=""))
+  file.exists <- sapply(seq_along(url.vec),function(i)file.exists(target.files[i]))
+  download.index <- download.index.all
+  download.index <- seq_along(url.vec)[which(file.exists == FALSE)]              
+                         
+  temp.vec <- sapply(download.index,function(x) tempfile())
   
-  invisible(sapply(seq_along(url.vec),function(x)download.file(url=url.vec[x],destfile=temp.vec[x])))
+  invisible(sapply(download.index,function(x)download.file(url=url.vec[x],destfile=temp.vec[x])))
   
-  invisible(sapply(seq_along(url.vec), 
+  invisible(sapply(download.index, 
                    function(i)write(readLines(con=gzfile(temp.vec[i]),n=-1),
-                                    file=paste(datadir,"/",sub(x=url.files[i],pattern=".gz",replacement=""),sep=""))))
+                                    file=target.files[i])))
   
   
   
@@ -357,7 +361,7 @@ parseENCODEGtf <- function(gtfFile,tabFile,headerMsg){
   system(paste("sed 's/[;\"]//g' ",gtfFile," | awk -F' ' '{print $12,$6,$14,$16,$18}' | sort -r> ",tmp.tab,sep=""))
   
   #cmd <- paste("cat <(echo ",header.title.out,") <(sed 's/[;\"]//g' ",gtfFile," | awk -F' ' '{print $12,$6,$14,$16,$18}' | sort) > ",tabFile,sep="")
-  print(cmd)
+ # print(cmd)
   cmd <- paste("cat ",tmp.cat,tmp.tab,">",tabFile,sep=" ")
   system(cmd )
   unlink(tmp.cat)
@@ -384,12 +388,19 @@ removeFileName <- function(df, filenames=cshl.remove.rnaseq){
 
 
 mergeExprFiles <- function(outfile,gencodeVersion){
-  if(missing(df)){
+
     df <- rbind(getNucCytoExpr(rnaExtract="longPolyA",gencodeVersion=gencodeVersion),
                 getNucCytoExpr(rnaExtract="longNonPolyA",gencodeVersion=gencodeVersion))
-    df <- removeFileName(df, filenames=cshl.remove.rnaseq)
-    downloadCytNuc(df)
-  }
+    
+    
+    
+    
+  #  df <- removeFileName(df, filenames=cshl.remove.rnaseq)
+  #  df <- removeCellTypes(df, cellTypes = "H1hESC")
+  #  df <- removeCellTypes(df, cellTypes = "NHEK")
+    
+    downloadCytNuc(df=df)
+  
   if(missing(outfile)){
     outfile <- getDataFile("encodeRnaSeqCshllpa.space")
   }
@@ -405,21 +416,147 @@ mergeExprFiles <- function(outfile,gencodeVersion){
   
   tmp <- tempfile()
   tmp1 <- tempfile()
-  file.copy(from = df$tabfile[1], to = tmp)
+  file.copy(from = df$tabfile[1], to = tmp, overwrite=TRUE)
+  df$skip =FALSE
   for( i in 2:length(df$tabfile)){
+    if(!checkCols(df$tabfile[i])){
+      df$skip[i] = TRUE
+      next
+    }
     systemJoin(file1 = tmp, file2 = df$tabfile[i], outfile = tmp1)
-    file.copy(from = tmp1, to = tmp)
+    file.copy(from = tmp1, to = tmp, overwrite=TRUE)
   }
-  file.copy(from=tmp, to = outfile)
+  file.copy(from=tmp, to = outfile, overwrite=TRUE)
   
   unlink(tmp)
   unlink(tmp1)
-  
+  checkAllCombined(allfile=outfile,df)
 }
 
 
+rep1 <- "wgEncodeCshlLongRnaSeqNhekCellPapTranscriptGencV7.gtf "
+rep2 <- "wgEncodeCshlLongRnaSeqNhekCellPapTranscriptGencV7Rep5.gtf"
+
+naVecToVal <- function(vec,val){
+  vec[is.na(vec)] <- val
+  vec
+}
+
+checkCols <- function (allfile) {
+  colpipe <- pipe(paste("cat",allfile,"| awk -F ' ' '{print NF}'"))
+  colCounts <- as.numeric(readLines(colpipe))
+  close(colpipe)
+  if(!sum(colCounts == colCounts[1]) == length(colCounts))
+    return(FALSE)
+  return(TRUE)
+}
 
 
+checkAllCombined <- function(allfile = rnaexpr.comb.v7,df){
+  pass = TRUE
+  all.df <- read.csv(allfile,stringsAsFactors=FALSE,sep=" ", nrows=10000)
+  checkCols(allfile)
+  
+  result <- list()
+  for(line in seq_len(nrow(df))){
+    if(!identical(df$skip[line], TRUE)){
+    for(reading in c("RPKM1", "RPKM2", "COMB", "IDR")){
+      testLine <- df[line,]
+      comb.vec <- all.df[[paste(reading,testLine$headerMsg,sep=".")]]
+      gtf.df <- read.csv(file=testLine$tabfile, sep = " ", stringsAsFactors=FALSE, nrows=10000)
+      col <- paste(reading,testLine$headerMsg,sep=".")
+      tabvalues <- naVecToVal(gtf.df[[col]],-1)
+      combvalues <- naVecToVal(all.df[[col]],-1)
+      result[[col]] <- (sum(tabvalues == combvalues ) == length(tabvalues))
+      }
+    }
+  }
+  if(any(as.logical(result) == FALSE)){
+    return(FALSE)
+  }else {
+    return(TRUE)
+  }
+  
+}
+
+allExprCombList <- function(names.df){
+   l <- list(comb = names.df[grep("COMB",names.df)],
+       RPKM1 = names.df[grep("RPKM1",names.df)],
+       RPKM2 = names.df[grep("RPKM2",names.df)],
+       IDR = names.df[grep("IDR",names.df)],
+       lpa = names.df[grep("lpa",names.df)],
+       lnpa = names.df[grep("lnpa",names.df)],
+       cell = names.df[grep("cell",names.df)],
+       cytosol = names.df[grep("cytosol",names.df)],
+       nucleus = names.df[grep("nucleus",names.df)])
+   
+   celltypes <- unique(as.character(sapply(df.names[-1], function(x)unlist(strsplit(x,"\\.")[[1]])[2])))
+   cell.list <- lapply(celltypes,function(x)names.df[grep(x,names.df)])
+   names(cell.list) <- celltypes
+   out.list <- c(l,cell.list)
+   out.list
+}
+
+combLabelVecPart <- function(labelVec, comp){
+  component <- c("measure", "cell", "pulldown", "localization")
+  index <- which(component %in% comp)
+  if(identical(index,integer(0))){
+    stop("comp not in c(measure,cell,pulldown,localization)")
+  }
+  as.character(sapply(labelVec, function(label)unlist(strsplit(label,"\\.")[[1]])[index]))
+}
+
+processExprComb <- function(gencodeVersion="v7"){
+  file <- get(paste("rnaexpr.comb", gencodeVersion,sep="."),envir=parent.frame())
+  df <- read.csv(file=file, sep = " ", stringsAsFactors=FALSE)
+  col.list <- allExprCombList(names(df))
+  pc.genes <- getGencodeAnnot(biotype="pc", gencodeVersion)
+  lnc.genes <- getGencodeAnnot(biotype="lnc", gencodeVersion)
+  df.pcLnc <- df[which(df$id %in% c(pc.genes$transcript_id, lnc.genes$transcript_id)),]
+  df.genes <- merge(df.pcLnc, rbind(pc.genes[c("transcript_id", "gene_id")],lnc.genes[c("transcript_id", "gene_id")]),by.x="id",by.y="transcript_id",all.x=TRUE)
+ 
+  d1 <- df.genes
+  df.genes <- df.genes[1:1000,]
+  df.rpkmsum <- df.genes[c("id","gene_id",rpkmsum)]
+  df.genes.melt <- melt(df.genes, id.vars=c("id", "gene_id"))
+  df.genes.melt$var = levels(df.genes.melt$variable)[df.genes.melt$variable]
+  df.genes.melt$measure <- combLabelVecPart(df.genes.melt$var,"measure")
+  df.genes.melt$cell <- combLabelVecPart(df.genes.melt$var,"cell")
+  df.genes.melt$pulldown <- combLabelVecPart(df.genes.melt$var,"pulldown")
+  df.genes.melt$localization <- combLabelVecPart(df.genes.melt$var,"localization")
+  
+  df.genes.melt$variable <- NULL
+  df.genes.melt$var <- NULL
+  
+  df.genes.cast <- dcast(df.genes.melt, ... ~ measure)
+  df.genes.cast$RPKMsum <- df.genes.cast$RPKM1 +  df.genes.cast$RPKM2
+  file.cast <- get(paste("rnaexpr.comb", gencodeVersion,"cast",sep="."),envir=parent.frame())
+  exportAsTable(df.genes.cast,file.cast)
+  
+  df.genes.cast$dd <- factor(paste0(df.genes.cast$gene_id, df.genes.cast$cell,df.genes.cast$pulldown,df.genes.cast$localization))
+  df.genes.trans <- ddply(df.genes.cast, .(dd),
+                          function(x)x[which(x$RPKMsum == max(x$RPKMsum))[1],])
+  df.genes.trans$dd <- NULL
+  file.maxTrans <- get(paste("rnaexpr.comb", gencodeVersion,"maxTrans",sep="."),envir=parent.frame())
+  exportAsTable(file.maxTrans,file.maxTrans)
+  
+  df.genes.trans$val <- paste0(df.genes.trans$cell,".",df.genes.trans$pulldown,".",df.genes.trans$localization)
+  df.genes.trans$id <- NULL
+  df.genes.trans$cell <- NULL
+  df.genes.trans$pulldown <- NULL
+  df.genes.trans$localization <- NULL
+  df.genes.trans.melt <- melt(df.genes.trans, id.vars=c("val", "gene_id"))
+  df.genes.trans.melt$var <- levels(df.genes.trans.melt$variable)[df.genes.trans.melt$variable]
+  df.genes.trans.melt$variable <- NULL
+  df.genes.trans.melt$colname <- paste0(df.genes.trans.melt$var,".",df.genes.trans.melt$val)
+  df.genes.trans.melt$var <- NULL
+  df.genes.trans.melt$val <- NULL
+  df.genes.maxTrans <- dcast(df.genes.trans.melt, ... ~ colname)
+  
+  #getTranscriptForMaxCols <- function(t1)cast(ldply(apply(t1,2,function(x)t1[which(x == max(x)),"id"]),function(x)x[1]), ~ .id )
+  #getValForMaxCols <- function(t1)cast(ldply(apply(t1,2,function(x)x[which(x == max(x))]),function(x)x[1]), ~ .id )
+  #lnc.expr.maxTransGeneCol.d <- suppressWarnings(ldply(split(imr.idr.df,imr.idr.df$gene_id),getValForMaxCols))
+}
 
 
 
