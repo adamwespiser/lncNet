@@ -67,7 +67,7 @@ processGencodeV10.lnc <- function(file = gencodeV10.lnc, out = gencodeV10.lnc.ta
   exportAsTable(df=df,file=out)
 }
 getGencodeV10.lnc <- function(){
-  if (!exists.file(gencodeV7.lnc.tab)){
+  if (!file.exists(gencodeV7.lnc.tab)){
     processGencodeV7.lnc()
   }
   df = read.csv(file=gencodeV10.lnc.tab,sep="\t", header=TRUE,stringsAsFactors=FALSE)
@@ -96,7 +96,7 @@ getGencodeV10.pc <- function(){
 
 
 
-getLncGenesV12 <- function(file = gencode.lnc){
+getLncGenesV12 <- function(file = gencodeV12.lnc){
   df <- read.csv(file=file, sep=" ", header=FALSE,colClass=c("character",'NULL',"character",'NULL'))
   colnames(df) <- c("gene_id","biotype")
   df$gene_id_short <- shortenIdVec(df$gene_id)
