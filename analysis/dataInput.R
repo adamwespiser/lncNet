@@ -12,11 +12,13 @@ cshl.remove.rnaseq <<- c("wgEncodeCshlLongRnaSeqNhekCellPapTranscriptGencV7Rep5.
 
 rnaexpr.comb.v7 <<-  getDataFile("cshl-rnaSeq-v7-allcombined.space")
 rnaexpr.comb.v7.cast <<-  getDataFile("cshl-rnaSeq-v7-allcombined-cast.space")
+rnaexpr.comb.v7.melt <<-  getDataFile("cshl-rnaSeq-v7-allcombined-melt.space")
 rnaexpr.comb.v7.maxTrans <<-  getDataFile("cshl-rnaSeq-v7-allcombined-maxTrans.space")
 
 
 rnaexpr.comb.v10 <<-  getDataFile("cshl-rnaSeq-v10-allcombined.space")
 rnaexpr.comb.v10.cast <<-  getDataFile("cshl-rnaSeq-v10-allcombined-cast.space")
+rnaexpr.comb.v10.melt <<-  getDataFile("cshl-rnaSeq-v10-allcombined-melt.space")
 rnaexpr.comb.v10.maxTrans <<-  getDataFile("cshl-rnaSeq-v10-allcombined-maxTrans.space")
 
 
@@ -29,7 +31,7 @@ k562.nuc.pap <<- getDataFile("wgEncodeCshlLongRnaSeqK562NucleusPapTranscriptGenc
 k562.nuc.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqK562NucleusPapTranscriptGencV7.tab")
 k562.cyt.pap <<- getDataFile("wgEncodeCshlLongRnaSeqK562CytosolPapTranscriptGencV7.gtf")
 k562.cyt.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqK562CytosolPapTranscriptGencV7.tab")
-IMR.cyt.pap <<-     getDataFile("wgEncodeCshlLongRnaSeqImr90CytosolPapTranscriptGencV10.gtf")
+IMR.cyt.pap   <<-     getDataFile("wgEncodeCshlLongRnaSeqImr90CytosolPapTranscriptGencV10.gtf")
 IMR.cyt.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqImr90CytosolPapTranscriptGencV10.tab")
 IMR.nuc.pap <<-     getDataFile("wgEncodeCshlLongRnaSeqImr90NucleusPapTranscriptGencV10.gtf")
 IMR.nuc.pap.tab <<- getDataFile("wgEncodeCshlLongRnaSeqImr90NucleusPapTranscriptGencV10.tab")
@@ -242,6 +244,16 @@ fetchEncodeDccFilesText <- function(filesTxt="~/data/wgEncodeCshlLongRnaSeqFiles
 }
 
 
+
+getFilesTxtCytNucPapPam <- function(filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab"){
+  if(!file.exists(filesTxtTab)){
+    fetchEncodeDccFilesText()
+  }
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
+
+}
+  
 getFilesTxt <- function(filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",rnaExtract="longPolyA",gencodeVersion){
   if(!file.exists(filesTxtTab)){
     fetchEncodeDccFilesText()
@@ -490,7 +502,7 @@ allExprCombList <- function(names.df){
        cytosol = names.df[grep("cytosol",names.df)],
        nucleus = names.df[grep("nucleus",names.df)])
    
-   celltypes <- unique(as.character(sapply(df.names[-1], function(x)unlist(strsplit(x,"\\.")[[1]])[2])))
+   celltypes <- unique(as.character(sapply(names.df[-1], function(x)unlist(strsplit(x,"\\.")[[1]])[2])))
    cell.list <- lapply(celltypes,function(x)names.df[grep(x,names.df)])
    names(cell.list) <- celltypes
    out.list <- c(l,cell.list)
@@ -506,18 +518,39 @@ combLabelVecPart <- function(labelVec, comp){
   as.character(sapply(labelVec, function(label)unlist(strsplit(label,"\\.")[[1]])[index]))
 }
 
+castOnMeasure <- function(df = df.genes.melt){
+  #df.skinny <- df[c("id","gene_id","value","measure")]
+  d <- do.call(cbind, split(df[c("value","id")],df$measure))
+  c.1 <- sum(d$COMB.id == d$RPKM1.id)/(dim(d)[1])
+  c.2 <-  sum(d$RPKM2.id == d$RPKM1.id)/(dim(d)[1])
+  c.3 <-  sum(d$RPKM2.id == d$IDR.id)/(dim(d)[1])
+  if(identical(c.1,1) && identical(c.2,1) && identical(c.3,1)){
+    d.out <- d[grep("value", names(d))] 
+    colnames(d.out) <- gsub(colnames(d.out), pattern=".value",replacement="")
+    d1 <- cbind(df[which(df$measure == (df$measure)[1]),], d.out)
+    d1$value <- NULL
+    d1$measure <- NULL
+    return(d1)
+  }
+  
+}
+
+
 processExprComb <- function(gencodeVersion="v7"){
-  file <- get(paste("rnaexpr.comb", gencodeVersion,sep="."),envir=parent.frame())
-  df <- read.csv(file=file, sep = " ", stringsAsFactors=FALSE)
+  file.expr <- get(paste("rnaexpr.comb", gencodeVersion,sep="."),envir=parent.frame())
+  if (!file.exists(file.expr)){
+    stop("cannot find expr file...aborating")
+  }
+  df <- read.csv(file=file.expr, sep = " ", stringsAsFactors=FALSE)
   col.list <- allExprCombList(names(df))
   pc.genes <- getGencodeAnnot(biotype="pc", gencodeVersion)
   lnc.genes <- getGencodeAnnot(biotype="lnc", gencodeVersion)
   df.pcLnc <- df[which(df$id %in% c(pc.genes$transcript_id, lnc.genes$transcript_id)),]
   df.genes <- merge(df.pcLnc, rbind(pc.genes[c("transcript_id", "gene_id")],lnc.genes[c("transcript_id", "gene_id")]),by.x="id",by.y="transcript_id",all.x=TRUE)
  
-  d1 <- df.genes
-  df.genes <- df.genes[1:1000,]
-  df.rpkmsum <- df.genes[c("id","gene_id",rpkmsum)]
+#  d1 <- df.genes
+#  df.genes <- df.genes[1:1000,]
+  #df.rpkmsum <- df.genes[c("id","gene_id",rpkmsum)]
   df.genes.melt <- melt(df.genes, id.vars=c("id", "gene_id"))
   df.genes.melt$var = levels(df.genes.melt$variable)[df.genes.melt$variable]
   df.genes.melt$measure <- combLabelVecPart(df.genes.melt$var,"measure")
@@ -527,18 +560,29 @@ processExprComb <- function(gencodeVersion="v7"){
   
   df.genes.melt$variable <- NULL
   df.genes.melt$var <- NULL
+  file.melt <- get(paste("rnaexpr.comb", gencodeVersion,"melt",sep="."),envir=parent.frame())
+  exportAsTable(df.genes.melt,file.cast)
   
-  df.genes.cast <- dcast(df.genes.melt, ... ~ measure)
+  
+  
+  df.genes.cast <- castOnMeasure(df.genes.melt)
+  #df.genes.cast <- dcast(df.genes.melt, ... ~ measure)
   df.genes.cast$RPKMsum <- df.genes.cast$RPKM1 +  df.genes.cast$RPKM2
   file.cast <- get(paste("rnaexpr.comb", gencodeVersion,"cast",sep="."),envir=parent.frame())
   exportAsTable(df.genes.cast,file.cast)
   
   df.genes.cast$dd <- factor(paste0(df.genes.cast$gene_id, df.genes.cast$cell,df.genes.cast$pulldown,df.genes.cast$localization))
-  df.genes.trans <- ddply(df.genes.cast, .(dd),
-                          function(x)x[which(x$RPKMsum == max(x$RPKMsum))[1],])
+  dgc.table <- tbl_df(df.genes.cast)
+  dgc.table.dd <- group_by(dgc.table, dd)
+  df.genes.trans <- as.data.frame(filter(dgc.table.dd,RPKMsum == max(RPKMsum) ))
+  
+  #df.genes.trans <- ddply(df.genes.cast, .(dd),
+   #                       function(x)x[which(x$RPKMsum == max(x$RPKMsum))[1],])
   df.genes.trans$dd <- NULL
   file.maxTrans <- get(paste("rnaexpr.comb", gencodeVersion,"maxTrans",sep="."),envir=parent.frame())
   exportAsTable(file.maxTrans,file.maxTrans)
+  
+  return(1)
   
   df.genes.trans$val <- paste0(df.genes.trans$cell,".",df.genes.trans$pulldown,".",df.genes.trans$localization)
   df.genes.trans$id <- NULL
@@ -556,6 +600,57 @@ processExprComb <- function(gencodeVersion="v7"){
   #getTranscriptForMaxCols <- function(t1)cast(ldply(apply(t1,2,function(x)t1[which(x == max(x)),"id"]),function(x)x[1]), ~ .id )
   #getValForMaxCols <- function(t1)cast(ldply(apply(t1,2,function(x)x[which(x == max(x))]),function(x)x[1]), ~ .id )
   #lnc.expr.maxTransGeneCol.d <- suppressWarnings(ldply(split(imr.idr.df,imr.idr.df$gene_id),getValForMaxCols))
+}
+
+
+createRnaSeqMapFile <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  all.equal(df.comb$read2.localization,df.comb$read1.localization)
+  all.equal(df.comb$read2.rnaExtract,df.comb$read1.rnaExtract)
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  df.comb$output <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="star.sam")
+  paste0("STAR  --readFilesCommand zcat --readFilesIn ", rnaseqdir,df.comb$read1.filename, " ",rnaseqdir,df.comb$read2.filename,
+         " > ",rnaseqdir,df.comb$output,sep=" ")
+  
+}
+
+createRnaSeqSegemehl <- function(){
+  # ./segemehl.x -i chr1_2_3.idx -d chr1.fa chr2.fa chr3.fa -q myreads.fa --threads 8 > mymap.sam
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  all.equal(df.comb$read2.localization,df.comb$read1.localization)
+  all.equal(df.comb$read2.rnaExtract,df.comb$read1.rnaExtract)
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  seg <-  "~/bin/segemehl_0_1_7/segemehl/segemehl.x "
+  seg.idx <- "/project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.idx"
+  seg.fa <- "/project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.fa"
+  
+  df.comb$output <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="seg.sam")
+  cat(paste0(seg,"-t 16 -i ",seg.idx, " -d " ,seg.fa ," -q ", rnaseqdir,df.comb$read1.filename, " -p ",rnaseqdir,df.comb$read2.filename,
+         " > ",rnaseqdir,df.comb$output,"\n",sep=" "),file="~/sandbox/segRun.sh")
+  
+}
+
+
+starGenerateGenomeCommand <- function(){
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  starGenomeDir <- paste(rnaseqdir,"starGenomeDir/",sep="")
+  genomeFasta <- paste(rnaseqdir,"GRCh37.p13.genome.fa",sep="")
+  annotationGtf <- paste(rnaseqdir,"gencode.v19.annotation.gtf",sep="")
+  #STAR --runMode genomeGenerate --genomeDir genomepath --genomeFastaFiles  genomepath/genome.fa  
+  # --sjdbGTFfile genomepath/genes.gtf --sjdbOverhang 100 --runThreadN 8
+  paste0("STAR --runMode genomeGenerate --genomeDir ", starGenomeDir, " --genomeFastaFiles ", genomeFasta,
+         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhand 75 --runThreadN 16")
+  
 }
 
 

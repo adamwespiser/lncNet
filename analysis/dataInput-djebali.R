@@ -26,7 +26,6 @@ getAnnotFile <- function(f=gene.expr.annot){
   df$annot <- paste0(df$cell,".", df$localization, ".", df$pulldown, sep="")
   df
 }
-df <- getAnnotFile()
 
 mapExprTNumeric <- function(exprStrVec,index,splitChar){
   sapply(levels(exprStrVec)[exprStrVec],  function(label)as.numeric(unlist(strsplit(label,splitChar)[[1]])[index]))
@@ -37,7 +36,7 @@ mapExprTChar <- function(exprStrVec,index,splitChar){
 mapExprTChar_char <- function(exprStrVec,index,splitChar){
   sapply(exprStrVec,  function(label)unlist(strsplit(label,splitChar)[[1]])[index])
 }
-processExprFile <- function(f=gene.expr){
+processExprFile.cytNuc <- function(f=gene.expr){
   annot <- getAnnotFile()
   annot$colTitle <- sapply(annot$expr, function(x)gsub(x,pattern="-",replacement="\\."))
   df <- read.csv(file=gene.expr, sep=" ",stringsAsFactors=FALSE)
@@ -67,19 +66,17 @@ processExprFile <- function(f=gene.expr){
   melt.df[which(melt.df$gene_id_short %in% lncFunc$ensembl_gene_id),"funcLnc"] <- 1
   
   melt.df$RPKMsum = melt.df$RPKM1 + melt.df$RPKM2
-  
-  
   exportAsTable(df=melt.df,file=gene.expr.tab )
 }
 
-getExprFile <- function(f=gene.expr.tab){
+getExprFile.cytNuc <- function(f=gene.expr.tab){
   if(!file.exists(f)){
     processExprFile()
   }
-  d <- read.csv(file=f, stringsAsFactors = FALSE, sep = "\t", 
+  df <- read.csv(file=f, stringsAsFactors = FALSE, sep = "\t", 
                 colClasses =c(rep("character",3), rep("numeric",3),rep("character",5),"numeric") )
   df$RPKMsum = df$RPKM1 + df$RPKM2
-  
+  df
 }
 
 getCytNuc <- function(){
@@ -92,7 +89,69 @@ getCytNuc <- function(){
   annot.lnpa.cell <- subset(annot.lnpa, localization == "cell") 
   annot.lnpa.cyt <- subset(annot.lnpa, localization == "cytosol")
   annot.lnpa.nuc <- subset(annot.lnpa, localization == "nucleus")
-  
+  cytNuc <- c(annot.lpa.cyt$annot,annot.lpa.nuc$annot)
+  df <- getExprFile()
+  df[which(df$variable %in% cytNuc),]
   
 }
+
+getCytNucCell <- function(){
+  annot <- getAnnotFile()
+  annot.lpa <- subset(annot, pulldown == "longPolyA")
+  annot.lnpa <- subset(annot, pulldown == "longNonPolyA")
+  annot.lpa.cell <- subset(annot.lpa, localization == "cell") 
+  annot.lpa.cyt <- subset(annot.lpa, localization == "cytosol")
+  annot.lpa.nuc <- subset(annot.lpa, localization == "nucleus")
+  annot.lnpa.cell <- subset(annot.lnpa, localization == "cell") 
+  annot.lnpa.cyt <- subset(annot.lnpa, localization == "cytosol")
+  annot.lnpa.nuc <- subset(annot.lnpa, localization == "nucleus")
+  cytNuc.cells <- c(annot.lpa.cyt$cell,annot.lpa.nuc$cell)
+  cell.celltypes <- subset(annot.lpa.cell, cell %in% cytNuc.cells)
+  df <- getExprFile()
+  df[which(df$variable %in% cytNuc),]
+  
+}
+
+
+
+cytNucRatios <- function(){
+  df <- getCytNuc()
+  df$value <- NULL
+  df$pulldown <- NULL
+
+  celltypes <- unique(df$cell)
+  nuc <- df[which(df$localization == "nucleus"),]
+  cyt <- df[which(df$localization == "cytosol"),]
+  cytNuc.merge <- merge(nuc,cyt,by.x=c("gene_id","cell"),
+                        by.y=c("gene_id","cell"),suffixes=c(".nuc",".cyt"))
+  cytNuc.merge$RPKMratio <- cytNuc.merge$RPKMsum.cyt / cytNuc.merge$RPKMsum.nuc
+  cytNuc.merge$localization.nuc <- NULL
+  cytNuc.merge$localization.cyt <- NULL
+  
+  cytNuc.merge$biotype.nuc <- NULL
+  cytNuc.merge$biotype <- cytNuc.merge$biotype.cyt
+  cytNuc.merge$biotype.cyt <- NULL
+  
+  cytNuc.merge$gene_id_short.nuc <- NULL
+  cytNuc.merge$gene_id_short <- cytNuc.merge$gene_id_short.cyt
+  cytNuc.merge$gene_id_short.cyt <- NULL
+  
+  cytNuc.merge$funcLnc.nuc <- NULL
+  cytNuc.merge$funcLnc <- cytNuc.merge$funcLnc.cyt
+  cytNuc.merge$funcLnc.cyt <- NULL
+  
+  
+  cytNuc.merge$RPKMcomb <- cytNuc.merge$RPKMsum.cyt + cytNuc.merge$RPKMsum.nuc
+  cytNuc.merge <- cytNuc.merge[which(cytNuc.merge$RPKMsum.cyt > 0 & cytNuc.merge$RPKMsum.nuc > 0 ),]
+  cytNuc.merge[which(cytNuc.merge$funcLnc == 1 & cytNuc.merge$biotype %in% c("other", "pc")), "funcLnc"] <- 0
+  lnc.df <- unique(getGencodeAnnot("lnc", "v10")[c("gene_id","gene_type")])
+  df <- merge(cytNuc.merge, lnc.df[c("gene_id", "gene_type")], by="gene_id",all.x=TRUE)
+  
+  df$gene_type <- ifelse(is.na(df$gene_type), df$biotype, df$gene_type)
+  
+  df
+}
+
+
+
 

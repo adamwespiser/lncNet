@@ -36,7 +36,9 @@ list.of.packages <- c(
   "reshape2", # needed for melt
   "MASS",
   "devtools", # for github installs
-  "stringr"
+  "stringr",
+  "plyr",
+  "dplyr"
 )
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -70,6 +72,8 @@ registerDoParallel(10)
 
 ## load in other libs
 source(getFullPath("analysis/dataInput.R"))
+source(getFullPath("analysis/dataInput-djebali.R"))
+
 #source(getFullPath("analysis/plotResults.R"))
 
 
@@ -80,10 +84,17 @@ convertK562gtf <- function(){
 
 
 
-mergeAllCytNucV7 <- function(){
-  mergeExprFiles(outfile = rnaexpr.comb.v7, gencodeVersion = "v7")
-  mergeExprFiles(outfile = rnaexpr.comb.v10, gencodeVersion = "v10")
+mergeAllCytNuc <- function(){
+  #mergeExprFiles(outfile = rnaexpr.comb.v7, gencodeVersion = "v7")
+  #mergeExprFiles(outfile = rnaexpr.comb.v10, gencodeVersion = "v10")
+  processExprComb(gencodeVersion = "v7")
+  processExprComb(gencodeVersion = "v10")
+}
+
+processDjebail <- function(){
+  processExprFile()
   
 }
+
 
 
