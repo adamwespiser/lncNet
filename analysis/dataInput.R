@@ -4,6 +4,7 @@ projectDir <- normalizePath(file.path(script.dir(), ".."))
 getFullPath <- function(subpath){ file.path(projectDir, subpath) }
 
 source(getFullPath("analysis/gencodeInput.R"))
+source(getFullPath("analysis/clusterExecute.R"))
 
 
 local.datadir <<- "/home/wespisea/data/"
@@ -634,9 +635,136 @@ createRnaSeqSegemehl <- function(){
   seg.idx <- "/project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.idx"
   seg.fa <- "/project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.fa"
   
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
   df.comb$output <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="seg.sam")
+  df.comb$bam <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="seg.bam")
+  
   cat(paste0(seg,"-t 16 -i ",seg.idx, " -d " ,seg.fa ," -q ", rnaseqdir,df.comb$read1.filename, " -p ",rnaseqdir,df.comb$read2.filename,
          " > ",rnaseqdir,df.comb$output,"\n",sep=" "),file="~/sandbox/segRun.sh")
+  
+  #paste0("samtools view -bS ",rnaseqdir,df.comb$output, " > ",rnaseqdir,df.comb$bam), file="~/sandbox/segRunBam.sh")
+
+   write(generateSamToolsCoversionStar(df.comb$bare), file="~/sandbox/segRunBam.sh")
+}
+
+createRnaSeqSegemehlRest <- function(){
+  # ./segemehl.x -i chr1_2_3.idx -d chr1.fa chr2.fa chr3.fa -q myreads.fa --threads 8 > mymap.sam
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell != "K562" & cell != "GM12878"))
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  all.equal(df.comb$read2.localization,df.comb$read1.localization)
+  all.equal(df.comb$read2.rnaExtract,df.comb$read1.rnaExtract)
+   
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
+  df.comb$output <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="seg.sam")
+  df.comb$bam <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="seg.bam")
+  
+  cat(getSegCmdMap(df.comb$read1.filename,df.comb$read2.filename,df.comb$output),file="~/sandbox/segRunRest.sh")
+  
+  #paste0("samtools view -bS ",rnaseqdir,df.comb$output, " > ",rnaseqdir,df.comb$bam), file="~/sandbox/segRunBam.sh")
+  write(generatePicardCoversion(df.comb$bare), file="~/sandbox/segRunRest.sh")
+  generatePicardCoversion(df.comb$bare)
+}
+
+
+
+
+getSegCmdMap <- function(rd1,rd2,output){
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  seg <-  "~/bin/segemehl_0_1_7/segemehl/segemehl.x "
+  seg.idx <- "/project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.idx"
+  seg.fa <- "/project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.fa"
+  paste0(seg,"-t 16 -i ",seg.idx, " -d " ,seg.fa ," -q ", rd1, " -p ",rd2,
+         " > ",output,sep=" ")
+  
+}
+
+
+
+
+gbToBytes <- function(gb){
+  gb * (1024)^3
+}
+generateSamToolsCoversion <- function(filebase,dir=rnaseqdir,tag="seg"){
+  size <- gbToBytes(40)
+  cmd <- "~/bin/samtools view -bS test.seg.sam > test.seg.bam;;~/bin/samtools sort -m 42949672960 test.seg.bam test.seg.sort;;~/bin/samtools index test.seg.sort.bam test.seg.bai;;~/bin/samtools idxstats test.seg.bai > test.seg.bai.stats"
+  as.character(unlist(sapply(filebase, function(filename)gsub(x=gsub(x=cmd,pattern="test", replacement=file.path(dir,filename)),pattern="seg", replacement=tag))))
+}
+
+#.star.samAligned.out.sam
+
+generateSamToolsCoversionStar <- function(filebase,dir=rnaseqdir,tag="seg"){
+  size <- gbToBytes(40)
+  cmd <- "~/bin/samtools view -bS test.star.samAligned.out.sam > test.seg.bam;;~/bin/samtools sort -m 42949672960 test.seg.bam test.seg.sort;;~/bin/samtools index test.seg.sort.bam test.seg.bai;;~/bin/samtools idxstats test.seg.bai > test.seg.bai.stats"
+  as.character(unlist(sapply(filebase, function(filename)gsub(x=gsub(x=cmd,pattern="test", replacement=file.path(dir,filename)),pattern="seg", replacement=tag))))
+}
+
+generatePicardCoversionStar <- function(filebase,dir=rnaseqdir,tag="seg"){
+  size <- gbToBytes(40)
+  cmd <- "java -jar -Xmx30g /share/pkg/picard/1.96/SamFormatConverter.jar INPUT=test.star.samAligned.out.sam OUTPUT=test.seg.bam;;java -jar -Xmx30g  /share/pkg/picard/1.96/SortSam.jar SORT_ORDER=coordinate INPUT=test.seg.bam OUTPUT=test.seg.sort.bam;;java -jar -Xmx30g  /share/pkg/picard/1.96/BuildBamIndex.jar INPUT=test.seg.sort.bam OUTPUT=test.seg.bai;;java -jar -Xmx30g  /share/pkg/picard/1.96/BamIndexStats.jar INPUT=test.seg.bai OUTPUT=test.seg.bai.stats"
+  as.character(unlist(sapply(filebase, function(filename)gsub(x=gsub(x=cmd,pattern="test", replacement=file.path(dir,filename)),pattern="seg", replacement=tag))))
+}
+generatePicardCoversion <- function(filebase,dir=rnaseqdir,tag="seg"){
+  size <- gbToBytes(40)
+  cmd <- "java -jar -Xmx30g /share/pkg/picard/1.96/SamFormatConverter.jar INPUT=test.seg.sam OUTPUT=test.seg.bam;;java -jar -Xmx30g  /share/pkg/picard/1.96/SortSam.jar SORT_ORDER=coordinate INPUT=test.seg.bam OUTPUT=test.seg.sort.bam;;java -jar -Xmx30g  /share/pkg/picard/1.96/BuildBamIndex.jar INPUT=test.seg.sort.bam OUTPUT=test.seg.bai;;java -jar -Xmx30g  /share/pkg/picard/1.96/BamIndexStats.jar INPUT=test.seg.bai OUTPUT=test.seg.bai.stats"
+  as.character(unlist(sapply(filebase, function(filename)gsub(x=gsub(x=cmd,pattern="test", replacement=file.path(dir,filename)),pattern="seg", replacement=tag))))
+}
+
+
+
+getRead12ForK562andGM <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$output <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="star.sam")
+  df.comb$bam <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="star.bam")
+  
+  genStarAlignCmd(df.comb$read1.filename, df.comb$read2.filename,df.comb$output)
+}
+
+getRead12ForK562andGM.spikeIn <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$output <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="star.sam")
+  df.comb$bam <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="star.bam")
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
+  o <- paste0(genStarAlignCmdSpikeIN(df.comb$read1.filename, df.comb$read2.filename,df.comb$output),
+  "; ", generateSamToolsCoversion(df.comb$bare,tag="star"))
+  write(o, file="~/sandbox/starSpikeBam.sh")
+  
+  o.bam <-  generatePicardCoversionStar(df.comb$bare,tag="star")
+  write(o.bam, file="~/sandbox/starSpikeBam.sh")
+  
+}
+
+
+generateRestOfStarSpikeIN <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell != "K562" | cell != "GM12878"))
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$output <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="star.sam")
+  df.comb$bam <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="star.bam")
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
+  o <- paste0(genStarAlignCmdSpikeIN(df.comb$read1.filename, df.comb$read2.filename,df.comb$output),
+              "; ", generatePicardCoversionStar(df.comb$bare,tag="star"))
+  write(o, file="~/sandbox/starSpikeBamRest.sh")
   
 }
 
@@ -649,9 +777,84 @@ starGenerateGenomeCommand <- function(){
   #STAR --runMode genomeGenerate --genomeDir genomepath --genomeFastaFiles  genomepath/genome.fa  
   # --sjdbGTFfile genomepath/genes.gtf --sjdbOverhang 100 --runThreadN 8
   paste0("STAR --runMode genomeGenerate --genomeDir ", starGenomeDir, " --genomeFastaFiles ", genomeFasta,
-         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhand 75 --runThreadN 16")
+         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhand 75 --runThreadN 16") 
+}
+starGenerateGenomeCommand.spike <- function(){
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  starGenomeDir <- paste(rnaseqdir,"starGenomeDirSpikeIn/",sep="")
+  genomeFasta <- paste(rnaseqdir,"GRCh37.p13.genome.spikeIn.fa",sep="")
+  annotationGtf <- paste(rnaseqdir,"gencode.v19.annotation.gtf",sep="")
+  #STAR --runMode genomeGenerate --genomeDir genomepath --genomeFastaFiles  genomepath/genome.fa  
+  # --sjdbGTFfile genomepath/genes.gtf --sjdbOverhang 100 --runThreadN 8
+  star.cmd <- paste0("STAR --runMode genomeGenerate --genomeLoad LoadAndRemove --genomeDir ", starGenomeDir, " --genomeFastaFiles ", genomeFasta,
+         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhang 75 --runThreadN 16") 
+  cat("perl ~/bin/runJob.pl -c 20 -m 40960 -W 600 -Q short -i \"",star.cmd,"\"",sep="" )
+
+}
+
+# 
+genStarAlignCmdSpikeIN <- function(rd1,rd2,outfile){
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  starGenomeDir <- paste(rnaseqdir,"starGenomeDirSpikeIn/",sep="")
+  genomeFasta <- paste(rnaseqdir,"GRCh37.p13.genome.spikeIn.fa",sep="")
+  annotationGtf <- paste(rnaseqdir,"gencode.v19.annotation.gtf",sep="")
+  
+  paste0("STAR --runMode alignReads --genomeLoad LoadAndRemove --readFilesCommand zcat --runThreadN 16", 
+         " --readFilesIn ", paste0(rnaseqdir, rd1), " ", paste0(rnaseqdir, rd2), 
+         " --genomeDir ", starGenomeDir,
+         " --genomeFastaFiles ", genomeFasta,
+         " --sjdbGTFfile ", annotationGtf,
+         " --outFileNamePrefix ", paste0(rnaseqdir, outfile)) 
+}
+
+
+genStarAlignCmd <- function(rd1,rd2,outfile){
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  starGenomeDir <- paste(rnaseqdir,"starGenomeDir/",sep="")
+  genomeFasta <- paste(rnaseqdir,"GRCh37.p13.genome.fa",sep="")
+  annotationGtf <- paste(rnaseqdir,"gencode.v19.annotation.gtf",sep="")
+  
+  paste0("STAR --runMode alignReads --genomeLoad LoadAndRemove --runThreadN 16", 
+         " --readFilesIn ", paste0(rnaseqdir, rd1), " ", paste0(rnaseqdir, rd2), 
+         " --genomeDir ", starGenomeDir,
+         " --genomeFastaFiles ", genomeFasta,
+         " --sjdbGTFfile ", annotationGtf,
+         " --outFileNamePrefix ", paste0(rnaseqdir, outfile)) 
+}
+
+
+
+downloadBamBaiFile <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.cytNuc.restFastq <- subset(df, type == "fastq" & (localization == "nucleus" | localization == "cytosol") & cell != "K562" & cell != "GM12878")
+  df.cytNuc.bam <- subset(df, type == "bam" & (localization == "nucleus" | localization == "cytosol") & cell != "K562" & cell != "GM12878")
+  filenames <- c(df.cytNuc.restFastq$filename, df.cytNuc.bam$filename)
+  remote.site <- cshl.rnaseq.dir
+  rna.remote <- file.path("/project/umw_zhiping_weng/wespisea/","rna-seq/")
+  web.file <- paste0(remote.site,filenames)
+  #sapply(web.file, function(w)url.exists(w))
+  hpc.download(url.vec=paste0(remote.site,filenames), target.vec=paste0(rna.remote,filenames))
+  hpc.download.seq.cont(url.vec=paste0(remote.site,filenames), target.vec=paste0(rna.remote,filenames))
+}
+
+
+getSpikeIns <- function(){
+  spikeIn <- read.fasta(file=url("http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeCshlLongRnaSeq/supplemental/wgEncodeCshlLongSpikeins.fasta"))
+  lenList <- sapply(spikeIn, function(x)length(x))
+  nms <- names(lenList)
+  val <- as.numeric(unlist(lenList))
+  valp1 <- val + 1
+  nms.trans <- paste0(nms,"_trans")
+  spikeInbed12 <- paste0(paste0(nms,"\t",1,"\t",valp1,"\t",nms.trans,"\t",0,"\t","+","\t",1,"\t",valp1,"\t",0,"\t",1,"\t",val,",\t","0,"),"\n")
+  cat(spikeInbed12, file="~/sandbox/spikeIn14.bed12")
   
 }
+
+
+#sam2bed test.seg.sam test.seg.bed
+#sort-bed --max-mem 20G test.seg.bed > test.seg_sort.bed
+#bedops --element-of -50%  test.seg_sort.bed gencodeV19.bed
+
 
 
 
