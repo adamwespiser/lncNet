@@ -152,6 +152,44 @@ cytNucRatios <- function(){
   df
 }
 
+cytNucRatiosPseudoCount <- function(){
+  df <- getCytNuc()
+  df$value <- NULL
+  df$pulldown <- NULL
+  
+  celltypes <- unique(df$cell)
+  nuc <- df[which(df$localization == "nucleus"),]
+  cyt <- df[which(df$localization == "cytosol"),]
+  cytNuc.merge <- merge(nuc,cyt,by.x=c("gene_id","cell"),
+                        by.y=c("gene_id","cell"),suffixes=c(".nuc",".cyt"))
+  cytNuc.merge <- cytNuc.merge[which(cytNuc.merge$RPKMsum.cyt > 0 & cytNuc.merge$RPKMsum.nuc > 0 ),]
+  cytNuc.merge$RPKMratio <- (cytNuc.merge$RPKMsum.cyt + 1) / (cytNuc.merge$RPKMsum.nuc +1)
+  cytNuc.merge$localization.nuc <- NULL
+  cytNuc.merge$localization.cyt <- NULL
+  
+  cytNuc.merge$biotype.nuc <- NULL
+  cytNuc.merge$biotype <- cytNuc.merge$biotype.cyt
+  cytNuc.merge$biotype.cyt <- NULL
+  
+  cytNuc.merge$gene_id_short.nuc <- NULL
+  cytNuc.merge$gene_id_short <- cytNuc.merge$gene_id_short.cyt
+  cytNuc.merge$gene_id_short.cyt <- NULL
+  
+  cytNuc.merge$funcLnc.nuc <- NULL
+  cytNuc.merge$funcLnc <- cytNuc.merge$funcLnc.cyt
+  cytNuc.merge$funcLnc.cyt <- NULL
+  
+  
+  cytNuc.merge$RPKMcomb <- cytNuc.merge$RPKMsum.cyt + cytNuc.merge$RPKMsum.nuc
+  cytNuc.merge <- cytNuc.merge[which(cytNuc.merge$RPKMsum.cyt > 0 & cytNuc.merge$RPKMsum.nuc > 0 ),]
+  cytNuc.merge[which(cytNuc.merge$funcLnc == 1 & cytNuc.merge$biotype %in% c("other", "pc")), "funcLnc"] <- 0
+  lnc.df <- unique(getGencodeAnnot("lnc", "v10")[c("gene_id","gene_type")])
+  df <- merge(cytNuc.merge, lnc.df[c("gene_id", "gene_type")], by="gene_id",all.x=TRUE)
+  
+  df$gene_type <- ifelse(is.na(df$gene_type), df$biotype, df$gene_type)
+  
+  df
+}
 
 
 

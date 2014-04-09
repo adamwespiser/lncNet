@@ -808,6 +808,16 @@ genStarAlignCmdSpikeIN <- function(rd1,rd2,outfile){
 }
 
 
+genStarAlignCmdSpikeIN.paramFile <- function(rd1,rd2,outfile){
+  paramFile <- "/home/aw30w/log/params/parametersENCODElong_AWmod.txt"
+  paste0("STAR --runMode alignReads ", 
+         " --readFilesIn ", rd1, " ", rd2, 
+         " --outFileNamePrefix ", outfile,
+         " --parametersFiles ", paramFile)
+}
+
+
+
 genStarAlignCmd <- function(rd1,rd2,outfile){
   rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
   starGenomeDir <- paste(rnaseqdir,"starGenomeDir/",sep="")
@@ -851,10 +861,184 @@ getSpikeIns <- function(){
 }
 
 
-#sam2bed test.seg.sam test.seg.bed
-#sort-bed --max-mem 20G test.seg.bed > test.seg_sort.bed
-#bedops --element-of -50%  test.seg_sort.bed gencodeV19.bed
+getBedopsIntersect <- function(infile,tag){
+  
+if(tag == "star"){
 
+  # samtools view -bS test.star.samAligned.out.sam > test.star.bam;;bedtools bamtobed -i test.star.bam > test.star.bed
+  genbed <- "samtools view -bS test.star.samAligned.out.sam > test.star.bam;;bedtools bamtobed -i test.star.bam > test.star.bed"
+  sortbed <- "/home/aw30w/bin/sort-parallel.sh test.star.bed test.star_sort.bed"
+  exon<-"/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.star_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.exon.bed > test.exon.found"
+  intron <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.star_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.intron.bed > test.intron.found"
+  gene <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.star_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.bed > test.gene.found"
+  cmd <- paste0(c(genbed,sortbed,exon,intron,gene),collapse=";;")
+} else {
+  genbed <-"/home/aw30w/bin/bedops-2.4.1/bin/sam2bed < test.seg.sam > test.seg.bed"
+  sortbed <- "/home/aw30w/bin/sort-parallel.sh test.seg.bed > test.seg_sort.bed"
+  exon <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.seg_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.exon.bed > test.exon.found"
+  intron <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.seg_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.intron.bed > test.intron.found"
+  gene <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.seg_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.bed > test.gene.found"
+  cmd <- paste0(c(genbed,sortbed,exon,intron,gene),collapse=";;")
+  
+}
+as.character(unlist(sapply(infile, function(xx)gsub(x=cmd,pattern="test",replacement=xx))))
+
+}
+
+getBedopsIntersectStartWithBed <- function(infile,tag){
+  
+  if(tag == "star"){
+    
+    # samtools view -bS test.star.samAligned.out.sam > test.star.bam;;bedtools bamtobed -i test.star.bam > test.star.bed
+    sortbed <- "/home/aw30w/bin/sort-parallel.sh test.star.bed  test.star_sort.bed"
+    exon<-"/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.star_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.exon.bed > test.exon.found"
+    intron <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.star_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.intron.bed > test.intron.found"
+    gene <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.star_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.bed > test.gene.found"
+    cmd <- paste0(c(sortbed,exon,intron,gene),collapse=";;")
+  } else {
+    sortbed <- "/home/aw30w/bin/sort-parallel.sh test.seg.bed test.seg_sort.bed"
+    exon <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.seg_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.exon.bed > test.exon.found"
+    intron <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.seg_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.intron.bed > test.intron.found"
+    gene <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.seg_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.bed > test.gene.found"
+    cmd <- paste0(c(sortbed,exon,intron,gene),collapse=";;")
+    
+  }
+  as.character(unlist(sapply(infile, function(xx)gsub(x=cmd,pattern="test",replacement=xx))))
+  
+}
+
+getBedopsIntersect <- function(infile,tag){
+  
+  if(tag == "star"){
+    
+    # samtools view -bS test.star.samAligned.out.sam > test.star.bam;;bedtools bamtobed -i test.star.bam > test.star.bed
+  #  cmd <- "/home/aw30w/bin/sort-parallel.sh test.star.bed  test.star_sort.bed"
+    exon <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.star_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.exonMerge.bed > test.exon.found"
+    intron <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.star_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.intronExDiff.bed > test.intron.found"
+    gene <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.star_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.bed > test.gene.found"
+    cmd <- paste0(c(exon,intron,gene),collapse=";;")
+    
+    
+    
+  } else {
+    #sortbed <- "/home/aw30w/bin/sort-parallel.sh test.seg.bed test.seg_sort.bed"
+    # ../gencodeV19.exonMerge.bed > ../gencodeV19.intronExDiff.bed
+    
+    exon <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.seg_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.exonMerge.bed > test.exon.found"
+    intron <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.seg_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.intronExDiff.bed > test.intron.found"
+    gene <- "/home/aw30w/bin/bedops-2.4.1/bin/bedops --element-of -50%  test.seg_sort.bed /project/umw_zhiping_weng/wespisea/rna-seq/gencodeV19.bed > test.gene.found"
+    cmd <- paste0(c(exon,intron,gene),collapse=";;")
+    
+  }
+  as.character(unlist(sapply(infile, function(xx)gsub(x=cmd,pattern="test",replacement=xx))))
+  
+}
+
+generateStarBedops<- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol"))
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
+  o <- paste0(getBedopsIntersect(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),tag="star"))
+  write(o, file="~/sandbox/starToBed.sh")
+  # cat ~/bin/starToBed.sh | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 20480 -W 600 -Q short -t "star2Bed" -i "{}"
+}
+
+
+sortStarBed <- function(base){
+  cmd1 <- "/home/aw30w/bin/bedops-2.4.1/bin/sort-bed --max-mem 40G --tmpdir /project/umw_zhiping_weng/wespisea/tmp test.star.bed > test.star_sort.bed"
+  #cmd2 <- "/home/aw30w/bin/bedops-2.4.1/bin/sort-bed --max-mem 20G --tmpdir /project/umw_zhiping_weng/wespisea/tmp test.star.bed test.star_sorted.bed"
+  #cmd3 <- "/home/aw30w/bin/bedops-2.4.1/bin/sort-bed --max-mem 20G --tmpdir /project/umw_zhiping_weng/wespisea/tmp test.star.bed test.star_sorted.bed"
+  as.character(unlist(sapply(base, function(xx)gsub(x=cmd1,pattern="test",replacement=xx))))
+}
+
+generateStarBedops<- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell != "K562" & cell != "GM12878"))
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
+  
+  o <- genStarAlignCmdSpikeIN.paramFile(rd1=file.path(rnaseqdir,df.comb$read1.filename),
+                                        rd2=file.path(rnaseqdir,df.comb$read2.filename),
+                                        outfile=file.path(rnaseqdir,"starSpikeIn",df.comb$bare))
+  write(o, file="~/sandbox/runStar.sh")
+  scpFile(file.local="~/sandbox/runStar.sh", dir.remote="~/bin/")
+  # cat ~/bin/runStar.sh | xargs -I{}  perl ~/bin/runJob.pl -c 16 -m 3072 -W 600 -Q short -t "runStar" -i "{}"
+  df.comb$starAln <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star.samAligned.out.sam"))
+  
+  o <- paste0(getBedopsIntersect(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),tag="star"))
+  
+  write(o, file="~/sandbox/starToBed.sh")
+  # cat ~/bin/starToBed.sh | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 20480 -W 600 -Q short -t "star2Bed" -i "{}"
+  
+  
+  o <- paste0(getBedopsIntersect(file.path(rnaseqdir,"segemehl",df.comb$bare),tag="seg"))
+  
+  write(o, file="~/sandbox/segToBed.sh")
+  #  cat ~/bin/segToBed.sh | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 20480 -W 600 -Q short -t "seg2Bed2" -i "{}"
+  
+  
+ # ../gencodeV19.exonMerge.bed > ../gencodeV19.intronExDiff.bed
+  
+  o <- paste0(getBedopsIntersectStartWithBed(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),tag="star"))
+  
+  write(o, file="~/sandbox/starBedToElem.sh")
+  
+  o <- sortStarBed(file.path(rnaseqdir,"starSpikeIn",df.comb$bare))
+  write(o, file="~/sandbox/starBedSort.sh")
+  
+  
+  o <- getBedopsIntersect(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),tag="star")
+  write(o, file="~/sandbox/getStarCts.sh")
+  # cat ~/bin/getStarCts.sh | xargs -I{}  perl ~/bin/runJob.pl -c 4 -m 20480 -W 600 -Q short -t "starCts" -i "{}"
+  
+  
+  notdone <- sapply(paste0(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),".star_sort.bed"),function(x)hpc.file.exists(x))
+  o <- sortStarBed(file.path(rnaseqdir,"starSpikeIn",df.comb$bare))[which(notdone == FALSE)]
+  write(o, file="~/sandbox/starSortLongQ.sh")
+  scpFile(file.local="~/sandbox/starSortLongQ.sh", dir.remote="~/bin/")
+  # cat ~/bin/starSortLongQ.sh | xargs -I{}  perl ~/bin/runJob.pl -c 4 -m 20480 -W 6000 -Q long -t "longQstarBed" -i "{}"
+
+  
+  
+}
+
+# samtools view -bS test.seg.sam > test.seg.bam;;
+#   bedtools bamtobed -i test.seg.bam > test.seg.bed
+
+
+downloadCellDataLpa <- function(){
+
+
+
+df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+
+df.cytNuc.celltypes <- unique(subset(df, type=="fastq" & (localization == "nucleus" | localization == "cytosol"))[["cell"]])
+df.cell <- subset(df, type == "fastq" & (localization == "cell") & (cell %in% df.cytNuc.celltypes))
+filenames <- c(df.cytNuc.restFastq$filename)
+remote.site <- cshl.rnaseq.dir
+rna.remote <- file.path("/project/umw_zhiping_weng/wespisea/","rna-seq/")
+web.file <- paste0(remote.site,filenames)
+remote.file <- paste0(rna.remote,filenames)
+
+len <- length(remote.file)
+split <- floor(len/2)
+
+
+md <- paste0(paste0("wget --continue ", web.file[1:split], " -O ", remote.file[1:split] ," &\n",
+                    "wget --continue ", web.file[(split+1):len], " -O ", remote.file[(split +1):len] ),collapse= "; \n")
+write(md, file="~/sandbox/wgetCellPapPam.sh")
+scpFile(file.local="~/sandbox/wgetCellPapPam.sh", dir.remote="~/bin/")
+}
 
 
 
