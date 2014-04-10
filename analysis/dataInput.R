@@ -958,7 +958,9 @@ sortStarBed <- function(base){
 
 generateStarBedops<- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
-  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell != "K562" & cell != "GM12878"))
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol"))
+  
   read1 <- grep(df.fastq$filename,pattern="Rd1")
   read2 <- grep(df.fastq$filename,pattern="Rd2")
   
@@ -975,10 +977,45 @@ generateStarBedops<- function(){
   # cat ~/bin/runStar.sh | xargs -I{}  perl ~/bin/runJob.pl -c 16 -m 3072 -W 600 -Q short -t "runStar" -i "{}"
   df.comb$starAln <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star.samAligned.out.sam"))
   
+  
+  cmd1 <- "samtools view -bS test.star.samAligned.out.sam -o test.star.bam;;samtools sort -m 171798691840 test.star.bam test.star_sort"
+  o1 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd1,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  write(o1, file="~/sandbox/starBamSamtools.sh")
+  scpFile(file.local="~/sandbox/starBamSamtools.sh", dir.remote="~/bin/")
+  df.comb$samtoolsSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.bam"))
+# cat ~/bin/starBamSamtools.sh | perl -e 'while(<>){@c = split(/ +/,$_);$file = $c[scalar(@c)-1]; chomp($file); print $_ if !-e $file.".bam" }' | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 183840 -W 600 -Q short -t "samtools" -i "{}"  
+  cmd2 <- "java -jar -Xmx70g /share/pkg/picard/1.96/SamFormatConverter.jar INPUT=test.star.samAligned.out.sam OUTPUT=test.starPic.bam;;java -jar -Xmx30g  /share/pkg/picard/1.96/SortSam.jar SORT_ORDER=coordinate INPUT=test.starPic.bam OUTPUT=test.starPic.bam"
+  o2 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd2,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  write(o2, file="~/sandbox/starBamPicard")
+  scpFile(file.local="~/sandbox/starBamPicard", dir.remote="~/bin/")
+  df.comb$picSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".starPic_bam"))
+  
+  # cat ~/bin/starBamPicard | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 40960 -W 600 -Q short -t "picard" -i "{}"
+  
+  
+  cmd3 <- "java -jar -Xmx70g /share/pkg/picard/1.96/SamFormatConverter.jar INPUT=test.star.samAligned.out.sam OUTPUT=test.starPic.bam MAX_RECORDS_IN_RAM=5000000"
+  o3 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd3,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  write(o3, file="~/sandbox/starBamPicard")
+  scpFile(file.local="~/sandbox/starBamPicard", dir.remote="~/bin/")
+  df.comb$picSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".starPic_bam"))
+  
+  
+ "samtools sort -m 171798691840 test.star.sam test.star_sort"
+  
+  
+  
+  
   o <- paste0(getBedopsIntersect(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),tag="star"))
   
   write(o, file="~/sandbox/starToBed.sh")
   # cat ~/bin/starToBed.sh | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 20480 -W 600 -Q short -t "star2Bed" -i "{}"
+  
+  
+  
+  
+  
+  
+  
   
   
   o <- paste0(getBedopsIntersect(file.path(rnaseqdir,"segemehl",df.comb$bare),tag="seg"))
@@ -1039,6 +1076,5 @@ md <- paste0(paste0("wget --continue ", web.file[1:split], " -O ", remote.file[1
 write(md, file="~/sandbox/wgetCellPapPam.sh")
 scpFile(file.local="~/sandbox/wgetCellPapPam.sh", dir.remote="~/bin/")
 }
-
 
 
