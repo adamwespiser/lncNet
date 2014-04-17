@@ -383,6 +383,9 @@ parseENCODEGtf <- function(gtfFile,tabFile,headerMsg){
 }
 
 
+
+
+
 systemJoin <- function(file1, file2, outfile){
   if(!file.exists("/usr/bin/join")){
     stop("cannot find join command in /usr/bin/join")
@@ -617,8 +620,8 @@ createRnaSeqMapFile <- function(){
   df.comb$output <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern="fastq.gz",replacement="star.sam")
   paste0("STAR  --readFilesCommand zcat --readFilesIn ", rnaseqdir,df.comb$read1.filename, " ",rnaseqdir,df.comb$read2.filename,
          " > ",rnaseqdir,df.comb$output,sep=" ")
-  
 }
+
 
 createRnaSeqSegemehl <- function(){
   # ./segemehl.x -i chr1_2_3.idx -d chr1.fa chr2.fa chr3.fa -q myreads.fa --threads 8 > mymap.sam
@@ -857,8 +860,38 @@ getSpikeIns <- function(){
   nms.trans <- paste0(nms,"_trans")
   spikeInbed12 <- paste0(paste0(nms,"\t",1,"\t",valp1,"\t",nms.trans,"\t",0,"\t","+","\t",1,"\t",valp1,"\t",0,"\t",1,"\t",val,",\t","0,"),"\n")
   cat(spikeInbed12, file="~/sandbox/spikeIn14.bed12")
+}
+
+getSpikeInsGTF <- function(){
+  spikeIn <- read.fasta(file=url("http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeCshlLongRnaSeq/supplemental/wgEncodeCshlLongSpikeins.fasta"))
+  lenList <- sapply(spikeIn, function(x)length(x))
+  nms <- names(lenList)
+  val <- as.numeric(unlist(lenList))
+  valp1 <- val + 1
+  nms.trans <- paste0(nms,"_trans")
+  nms.gene  <- paste0(nms,"_gene")
+  nms.exon  <- paste0(nms,"_exon")
+  
+  spikeInGTF.gene <- paste0(nms,"\t","NISTSpikeIn","\t","gene","\t",1,"\t",valp1,"\t",".","\t","+","\t",".","\t",
+                              "gene_id \"",nms.gene,"\";"," transcript_id \"",nms.trans,"\";")
+  spikeInGTF.trans <- paste0(nms,"\t","NISTSpikeIn","\t","transcript","\t",1,"\t",valp1,"\t",".","\t","+","\t",".","\t",
+                            "gene_id \"",nms.gene,"\";"," transcript_id \"",nms.trans,"\";")
+  spikeInGTF.exon <- paste0(nms,"\t","NISTSpikeIn","\t","exon","\t",1,"\t",valp1,"\t",".","\t","+","\t",".","\t",
+                             "gene_id \"", nms.gene, "\";"," transcript_id \"",nms.trans,"\"; ", " exon_id \"",nms.exon,"\";")
+  gtfLines <- paste0(spikeInGTF.gene,"\n",spikeInGTF.trans,"\n",spikeInGTF.exon,"\n")
+  
+  
+  
+  cat(gtfLines, file="~/sandbox/spikeIn14.gtf")
+  # perl -pi -e 's/^ //g'  ~/sandbox/spikeIn14.gtf 
+  # scp ~/sandbox/spikeIn14.gtf aw30w@ghpcc06.umassrc.org:/project/umw_zhiping_weng/wespisea/rna-seq/
+  # cat /project/umw_zhiping_weng/wespisea/rna-seq/gencode.v19.annotation.gtf /project/umw_zhiping_weng/wespisea/rna-seq/spikeIn14.gtf > /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn.gtf
+
+  
+  
   
 }
+
 
 
 getBedopsIntersect <- function(infile,tag){
@@ -984,13 +1017,103 @@ generateStarBedops<- function(){
   scpFile(file.local="~/sandbox/starBamSamtools.sh", dir.remote="~/bin/")
   df.comb$samtoolsSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.bam"))
 # cat ~/bin/starBamSamtools.sh | perl -e 'while(<>){@c = split(/ +/,$_);$file = $c[scalar(@c)-1]; chomp($file); print $_ if !-e $file.".bam" }' | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 183840 -W 600 -Q short -t "samtools" -i "{}"  
-  cmd2 <- "java -jar -Xmx70g /share/pkg/picard/1.96/SamFormatConverter.jar INPUT=test.star.samAligned.out.sam OUTPUT=test.starPic.bam;;java -jar -Xmx30g  /share/pkg/picard/1.96/SortSam.jar SORT_ORDER=coordinate INPUT=test.starPic.bam OUTPUT=test.starPic.bam"
-  o2 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd2,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
-  write(o2, file="~/sandbox/starBamPicard")
-  scpFile(file.local="~/sandbox/starBamPicard", dir.remote="~/bin/")
-  df.comb$picSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".starPic_bam"))
+  #cmd2 <- "java -jar -Xmx70g /share/pkg/picard/1.96/SamFormatConverter.jar INPUT=test.star.samAligned.out.sam OUTPUT=test.starPic.bam;;java -jar -Xmx30g  /share/pkg/picard/1.96/SortSam.jar SORT_ORDER=coordinate INPUT=test.starPic.bam OUTPUT=test.starPic.bam"
+  #o2 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd2,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  #write(o2, file="~/sandbox/starBamPicard")
+  #scpFile(file.local="~/sandbox/starBamPicard", dir.remote="~/bin/")
+  #df.comb$picSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".starPic_bam"))
   
   # cat ~/bin/starBamPicard | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 40960 -W 600 -Q short -t "picard" -i "{}"
+  
+   cmd3 <- "samtools index test.star_sort.bam"
+  o3 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd3,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  write(o3, file="~/sandbox/stIdxStar")
+  scpFile(file.local="~/sandbox/stIdxStar", dir.remote="~/bin/")
+  df.comb$bamBai <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.bam.bai"))
+  # cat ~/bin/stIdxStar | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 4096 -W 600 -Q short -t bamIndexTest -i "{}"
+  
+  
+  
+  cmd4 <- "samtools view -h test.star_sort.bam -o test.star_sort.sam"
+  o4 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd4,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  write(o4, file="~/sandbox/sortBam2Sam")
+  scpFile(file.local="~/sandbox/sortBam2Sam", dir.remote="~/bin/")
+  df.comb$samSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.sam"))
+  # catMissingLast.sh ~/bin/sortBam2Sam | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 8192 -W 600 -Q short -t sortBam2sam -i "{}"
+  
+  
+  
+  cmd5.1 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.bed > COUNT_FILE.multicov.allTrans.uniqReads"
+  cmd5.2 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.singleTrans.bed > COUNT_FILE.multicov.singleTrans.uniqReads"
+  cmd5.3 <- "bedtools multicov -D -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.bed > COUNT_FILE.multicov.allTrans.dupReads"
+  cmd5.4 <- "bedtools multicov -D -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.singleTrans.bed > COUNT_FILE.multicov.singleTrans.dupReads"
+  cmd5.5 <- "bedtools multicov  -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.grace.bed > COUNT_FILE.multicov.grace"
+
+  o5 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste(cmd5.1,cmd5.2,cmd5.3,cmd5.4,cmd5.5,sep="\n"),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)),
+                                                                        pattern="COUNT_FILE",
+                                                                        replacement=file.path(rnaseqdir,"starSpikeIn/multicovCounts/",filename)))))
+  write(o5, file="~/sandbox/multicovCounts")
+  scpFile(file.local="~/sandbox/multicovCounts", dir.remote="~/bin/")
+  df.comb$multicovBare <- file.path(rnaseqdir,"starSpikeIn/multicovCounts/",df.comb$bare)
+  # catMissingLast.sh ~/bin/multicovCounts | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 8192 -W 600 -Q short -t multicov -i "{}"
+  # cat ~/bin/multicovCounts | grep "multicov.grace"| xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 8192 -W 600 -Q short -t multicov -i "{}"
+  
+  df.comb$multicovGrace <- paste0(rnaseqdir,"/starSpikeIn/multicovCounts/",df.comb$bare,".multicov.grace")
+  df.tiny <- df.comb[c("read1.cell","read1.localization","read1.rnaExtract","read1.replicate","multicovGrace")]
+  colnames(df.tiny) <- c("cell","localization","rnaExtract","replicate","multicovGrace")
+  grace.df <- merge(df.tiny,expand.grid(region = c("cds", "noncoding", "utr3", "utr5","intron"), multicovGrace=df.comb$multicovGrace),by="multicovGrace")
+  grace.df$cmdOut <- paste0(grace.df$multicovGrace,".",grace.df$region,".summary")
+  grace.df$cmd <- paste0("cat ",grace.df$multicovGrace," | grep ",grace.df$region," | awk '{NR += \\$7;} END {print NR}'")
+  
+  counts <- c()
+  for(i in seq_along(grace.df$cmd)){
+    counts[i] <- as.numeric(hpc.system(grace.df$cmd[i]))
+  }
+  grace.df$counts <- counts
+  exportAsTable(df=grace.df,file=getFullPath("data/multicovCountsGraceFeatures.tab"))
+  
+  
+  
+  cmd6.1 <- paste("cat /project/umw_zhiping_weng/wespisea/flux-capicitor/v19annotParamsNIST14 >> test.flux.params && echo STDOUT_FILE test.flux.out >> test.flux.params &&",
+                  "echo STDERR_FILE test.flux.err >> test.flux.params && echo STATS_FILE test.flux.stats >> test.flux.params && echo COVERAGE_FILE test.flux.coverage ",
+                  ">> test.flux.params")
+  cmd6.2 <- paste("/home/aw30w/bin/flux-capacitor-1.6.1/bin/flux-capacitor --threads 24 -p test.flux.params",
+                "-i  xxTESTINPUTxx.star_sort.bam -o test.flux.output")
+  
+  o6 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste0(cmd6.1,";;",cmd6.2),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn/flux-capacitorNIST14",filename)),
+                                                                        pattern="xxTESTINPUTxx",
+                                                                        replacement=file.path(rnaseqdir,"starSpikeIn/",filename)  ))))
+  write(o6, file="~/sandbox/fluxCap")
+  scpFile(file.local="~/sandbox/fluxCap", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/fluxCap -c 24 -m 1024 -W 600 -Q short -t flux
+  
+  
+  
+  
+  # /home/aw30w/bin/sjcount-master/sjcount -bam bam_file [-ssj junctions_output] [-ssc boundaries_output] [-log log_file]
+  cmd7 <- paste0("/home/aw30w/bin/sjcount-master/sjcount  -quiet  -bam  xxTESTINPUTxx.star_sort.bam -ssj test.ssj -ssc test.scc -log test.log" )
+  o7 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste0(cmd7),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn/ssjCount",filename)),
+                                                                        pattern="xxTESTINPUTxx",
+                                                                        replacement=file.path(rnaseqdir,"starSpikeIn/",filename)  ))))
+  write(o7, file="~/sandbox/ssjcountRun")
+  scpFile(file.local="~/sandbox/ssjcountRun", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/ssjcountRun -c 2 -m 8192 -W 600 -Q short -t ssj
+  
+  
+  
+  
+  cmd5.1 <- "python reads-in-features.py  --sam=test.star_sort.sam --gff=/project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.pc.gtf  --label=mRNA --stranded=TRUE --outprefix=COUNT_FILE.mRNA."
+  cmd5.2 <- "python reads-in-features.py  --sam=test.star_sort.sam --gff=/project/umw_zhiping_weng/wespisea/gtf/gencode.v19.long_noncoding_RNAs.gtf  --label=lnc --stranded=TRUE --outprefix=COUNT_FILE.lncRNA."
+  o5 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste(cmd5.1,cmd5.2,sep="\n"),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)),
+                                                                        pattern="COUNT_FILE",
+                                                                        replacement=file.path(rnaseqdir,"starSpikeIn/htseqCounts/",filename)))))
+  write(o5, file="~/sandbox/htseqCounts")
+  scpFile(file.local="~/sandbox/htseqCounts", dir.remote="~/bin/")
+  
+  
+  
+  
+  
   
   
   cmd3 <- "java -jar -Xmx70g /share/pkg/picard/1.96/SamFormatConverter.jar INPUT=test.star.samAligned.out.sam OUTPUT=test.starPic.bam MAX_RECORDS_IN_RAM=5000000"
@@ -1054,27 +1177,122 @@ generateStarBedops<- function(){
 
 
 downloadCellDataLpa <- function(){
-
-
-
-df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
-
-df.cytNuc.celltypes <- unique(subset(df, type=="fastq" & (localization == "nucleus" | localization == "cytosol"))[["cell"]])
-df.cell <- subset(df, type == "fastq" & (localization == "cell") & (cell %in% df.cytNuc.celltypes))
-filenames <- c(df.cytNuc.restFastq$filename)
-remote.site <- cshl.rnaseq.dir
-rna.remote <- file.path("/project/umw_zhiping_weng/wespisea/","rna-seq/")
-web.file <- paste0(remote.site,filenames)
-remote.file <- paste0(rna.remote,filenames)
-
-len <- length(remote.file)
-split <- floor(len/2)
-
-
-md <- paste0(paste0("wget --continue ", web.file[1:split], " -O ", remote.file[1:split] ," &\n",
-                    "wget --continue ", web.file[(split+1):len], " -O ", remote.file[(split +1):len] ),collapse= "; \n")
-write(md, file="~/sandbox/wgetCellPapPam.sh")
-scpFile(file.local="~/sandbox/wgetCellPapPam.sh", dir.remote="~/bin/")
+  
+  
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  
+  df.cytNuc.celltypes <- unique(subset(df, type=="fastq" & (localization == "nucleus" | localization == "cytosol"))[["cell"]])
+  df.fastq <- subset(df, type == "fastq" & (localization == "cell") & (cell %in% df.cytNuc.celltypes))
+  filenames <- c(df.cytNuc.restFastq$filename)
+  remote.site <- cshl.rnaseq.dir
+  rna.remote <- file.path("/project/umw_zhiping_weng/wespisea/","rna-seq/")
+  web.file <- paste0(remote.site,filenames)
+  remote.file <- paste0(rna.remote,filenames)
+  
+  len <- length(remote.file)
+  split <- floor(len/2)
+  
+  
+  md <- paste0(paste0("wget --continue ", web.file[1:split], " -O ", remote.file[1:split] ," &\n",
+                      "wget --continue ", web.file[(split+1):len], " -O ", remote.file[(split +1):len] ),collapse= "; \n")
+  write(md, file="~/sandbox/wgetCellPapPam.sh")
+  scpFile(file.local="~/sandbox/wgetCellPapPam.sh", dir.remote="~/bin/")
+  
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
+  
+  o <- genStarAlignCmdSpikeIN.paramFile(rd1=file.path(rnaseqdir,df.comb$read1.filename),
+                                        rd2=file.path(rnaseqdir,df.comb$read2.filename),
+                                        outfile=file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star.sam")))
+  write(o, file="~/sandbox/runStar.sh")
+  scpFile(file.local="~/sandbox/runStar.sh", dir.remote="~/bin/")
+  # cat ~/bin/runStar.sh | xargs -I{}  perl ~/bin/runJob.pl -c 16 -m 3072 -W 600 -Q short -t "runStar" -i "{}"
+  df.comb$starAln <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star.samAligned.out.sam"))
+  
+  
+  cmd1 <- "samtools view -bS test.star.samAligned.out.sam -o test.star.bam;;samtools sort -m 171798691840 test.star.bam test.star_sort"
+  o1 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd1,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  #write(o1, file="~/sandbox/starBamSamtools.sh")
+  #scpFile(file.local="~/sandbox/starBamSamtools.sh", dir.remote="~/bin/")
+  df.comb$samtoolsSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.bam"))
+  cmd3 <- "samtools index test.star_sort.bam"
+  o3 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd3,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  write(o3, file="~/sandbox/stIdxStar")
+  scpFile(file.local="~/sandbox/stIdxStar", dir.remote="~/bin/")
+  df.comb$bamBai <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.bam.bai"))
+  # cat ~/bin/stIdxStar | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 4096 -W 600 -Q short -t bamIndexTest -i "{}"
+  
+  
+  
+  cmd4 <- "samtools view -h test.star_sort.bam -o test.star_sort.sam"
+  o4 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd4,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  #write(o4, file="~/sandbox/sortBam2Sam")
+  #scpFile(file.local="~/sandbox/sortBam2Sam", dir.remote="~/bin/")
+  df.comb$samSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.sam"))
+  # catMissingLast.sh ~/bin/sortBam2Sam | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 8192 -W 600 -Q short -t sortBam2sam -i "{}"
+  
+  
+  
+  
+  cmd6.1 <- paste("cat /project/umw_zhiping_weng/wespisea/flux-capicitor/v19annotParamsNIST14 >> test.flux.params && echo STDOUT_FILE test.flux.out >> test.flux.params &&",
+                  "echo STDERR_FILE test.flux.err >> test.flux.params && echo STATS_FILE test.flux.stats >> test.flux.params && echo COVERAGE_FILE test.flux.coverage ",
+                  ">> test.flux.params")
+  cmd6.2 <- paste("/home/aw30w/bin/flux-capacitor-1.6.1/bin/flux-capacitor --threads 24 -p test.flux.params",
+                  "-i  xxTESTINPUTxx.star_sort.bam -o test.flux.output")
+  
+  o6 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste0(cmd6.1,";;",cmd6.2),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn/flux-capacitorNIST14",filename)),
+                                                                        pattern="xxTESTINPUTxx",
+                                                                        replacement=file.path(rnaseqdir,"starSpikeIn/",filename)  ))))
+  #write(o6, file="~/sandbox/fluxCap")
+  #scpFile(file.local="~/sandbox/fluxCap", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/fluxCap -c 24 -m 1024 -W 600 -Q short -t flux
+  
+  
+  
+  
+  # /home/aw30w/bin/sjcount-master/sjcount -bam bam_file [-ssj junctions_output] [-ssc boundaries_output] [-log log_file]
+  cmd7 <- paste0("/home/aw30w/bin/sjcount-master/sjcount3   -quiet  -bam  xxTESTINPUTxx.star_sort.bam -ssj test.ssj -ssc test.scc -log test.log" )
+  o7 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste0(cmd7),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn/ssjCount",filename)),
+                                                                        pattern="xxTESTINPUTxx",
+                                                                        replacement=file.path(rnaseqdir,"starSpikeIn/",filename)  ))))
+  write(o7, file="~/sandbox/ssjcountRun")
+  scpFile(file.local="~/sandbox/ssjcountRun", dir.remote="~/bin/")
+  
+  
+  o.comb <- paste0(o1,";;",o3,";;",o4,";;",o6," &;;",o7)
+  write(o.comb, file="~/sandbox/processStarAlign")
+  scpFile(file.local="~/sandbox/processStarAlign", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/processStarAlign -c 26 -m 4096 -W 10:0 -Q short -t flux
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  cmd5.1 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.bed > COUNT_FILE.multicov.allTrans.uniqReads"
+  cmd5.2 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.singleTrans.bed > COUNT_FILE.multicov.singleTrans.uniqReads"
+  cmd5.3 <- "bedtools multicov -D -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.bed > COUNT_FILE.multicov.allTrans.dupReads"
+  cmd5.4 <- "bedtools multicov -D -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.singleTrans.bed > COUNT_FILE.multicov.singleTrans.dupReads"
+  cmd5.5 <- "bedtools multicov  -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.grace.bed > COUNT_FILE.multicov.grace"
+  
+  o5 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste(cmd5.1,cmd5.2,cmd5.3,cmd5.4,cmd5.5,sep="\n"),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)),
+                                                                        pattern="COUNT_FILE",
+                                                                        replacement=file.path(rnaseqdir,"starSpikeIn/multicovCounts/",filename)))))
+  write(o5, file="~/sandbox/multicovCounts")
+  scpFile(file.local="~/sandbox/multicovCounts", dir.remote="~/bin/")
+  df.comb$multicovBare <- file.path(rnaseqdir,"starSpikeIn/multicovCounts/",df.comb$bare)
+  
+  
 }
 
 
