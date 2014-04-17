@@ -1077,7 +1077,7 @@ generateStarBedops<- function(){
   cmd6.1 <- paste("cat /project/umw_zhiping_weng/wespisea/flux-capicitor/v19annotParamsNIST14 >> test.flux.params && echo STDOUT_FILE test.flux.out >> test.flux.params &&",
                   "echo STDERR_FILE test.flux.err >> test.flux.params && echo STATS_FILE test.flux.stats >> test.flux.params && echo COVERAGE_FILE test.flux.coverage ",
                   ">> test.flux.params")
-  cmd6.2 <- paste("/home/aw30w/bin/flux-capacitor-1.6.1/bin/flux-capacitor --threads 24 -p test.flux.params",
+  cmd6.2 <- paste("/home/aw30w/bin/flux-capacitor-1.6.1/bin/flux-capacitor --force --threads 24 -p test.flux.params",
                 "-i  xxTESTINPUTxx.star_sort.bam -o test.flux.output")
   
   o6 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste0(cmd6.1,";;",cmd6.2),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn/flux-capacitorNIST14",filename)),
