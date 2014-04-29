@@ -73,6 +73,14 @@ registerDoParallel(10)
 ## load in other libs
 source(getFullPath("analysis/dataInput.R"))
 source(getFullPath("analysis/dataInput-djebali.R"))
+source(getFullPath("analysis/plotExprData.R"))
+source(getFullPath("analysis/clusterExecute.R"))
+source(getFullPath("analysis/plotIntronCounts.R"))
+source(getFullPath("analysis/plotReadCounts.R"))
+source(getFullPath("analysis/fluxScript.R"))
+source(getFullPath("analysis/spikeIn.R"))
+#source(getFullPath("analysis/searchForExpr.R"))
+
 
 #source(getFullPath("analysis/plotResults.R"))
 

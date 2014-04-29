@@ -115,3 +115,6 @@ list(local=local.file,remote=remote.file,error=remote.err.file,out=remote.out.fi
 }
 
 
+countMappedReads <- function(bamFile){
+hpc.system(paste("bash;source ~/.bashrc;/home/aw30w/bin/countMappedReads ",bamFile))
+}

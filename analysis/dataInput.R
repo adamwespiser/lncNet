@@ -6,7 +6,7 @@ getFullPath <- function(subpath){ file.path(projectDir, subpath) }
 source(getFullPath("analysis/gencodeInput.R"))
 source(getFullPath("analysis/clusterExecute.R"))
 
-
+filesTxtTab <<- "~/data/wgEncodeCshlLongRnaSeqFiles.tab"
 local.datadir <<- "/home/wespisea/data/"
 
 cshl.remove.rnaseq <<- c("wgEncodeCshlLongRnaSeqNhekCellPapTranscriptGencV7Rep5.gtf.gz","wgEncodeCshlLongRnaSeqNhekCellPamTranscriptGencV7Rep5.gtf.gz")
@@ -988,6 +988,28 @@ sortStarBed <- function(base){
   #cmd3 <- "/home/aw30w/bin/bedops-2.4.1/bin/sort-bed --max-mem 20G --tmpdir /project/umw_zhiping_weng/wespisea/tmp test.star.bed test.star_sorted.bed"
   as.character(unlist(sapply(base, function(xx)gsub(x=cmd1,pattern="test",replacement=xx))))
 }
+
+runFASTQC <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol"))
+  df.fastq$fastq <- file.path(rnaseqdir,df.fastq$filename)
+  df.fastq$bare <- gsub(df.fastq$filename,pattern=".fastq.gz",replacement="")
+  df.fastq$infoDir <- gsub(file.path(rnaseqdir,"FASTQC/",df.fastq$bare,"/"),pattern="//",replacement="/")
+  df.fastq$infoDir
+  
+  cmd.1 <- paste0("mkdir -p ",df.fastq$infoDir,";;fastqc -q -o ", df.fastq$infoDir, " -f fastq ", df.fastq$fastq, " ")
+  #cmd4 <- "samtools view -h test.star_sort.bam -o test.star_sort.sam"
+  #o4 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd4,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  write(cmd.1, file="~/sandbox/fastqc")
+  scpFile(file.local="~/sandbox/fastqc", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/fastqc -c 6 -m 4096 -W 600 -Q short -t fastqStar
+
+  
+
+}
+
+
+
 
 generateStarBedops<- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
