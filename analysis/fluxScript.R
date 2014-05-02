@@ -217,7 +217,7 @@ getTranscriptData <- function(celltype,rnaExtract){
   
 }
 
-getTranscriptDataCelltypes <- function(celltypes=c("A549", "GM12878", "HeLa-S3", "HepG2","HUVEC" , "K562","NHEK"),rnaExtract){
+getTranscriptDataCelltypes <- function(celltypes=c("A549", "GM12878", "HeLa-S3", "HepG2","HUVEC" , "K562","NHEK","SK-N-SH"),rnaExtract){
   annot.df <- getFluxDataForOneCell()
   annot.df <- annot.df[which(annot.df$cell %in% celltypes), ]
   if(!missing(rnaExtract)){
@@ -911,6 +911,7 @@ ggplot(df.cyt.merge[which(df.cyt.merge$variable %in% c("transcriptTotalReads", "
 }
 
 # return data frame of cyt nuc 
+#file=getFullPath("./data/spikeIn-cytNucPapPam.tab")
 processSpikeIn <- function(){
   annot.df <- getFluxDataForOneCell()
   annot.df$rep <- ifelse(annot.df$replicate > 2, annot.df$replicate - 2, annot.df$replicate)
@@ -1074,7 +1075,7 @@ processSpikeIn <- function(){
 #     ggtitle(paste("Celltype->",celltype,"\nRPKM for SpikeIn btwn replicates")) + thisTheme2
   
   
-plotSpikeInOnly <- function(file=getFullPath("./data/spikeIn-cytNucPapPam.tab"))
+plotSpikeInOnly <- function(file=getFullPath("./data/spikeIn-cytNucPapPam.tab")){
   df.cytNuc <- read.csv(file=file, sep="\t", stringsAsFactors=FALSE)
   # determine the relationship between fraction of reads(expected value = 1/2) and nucleotides
   df.cytNuc.reads <- df.cytNuc[which(df.cytNuc$variable == "reads"),]
@@ -1194,25 +1195,7 @@ plotSpikeInOnly <- function(file=getFullPath("./data/spikeIn-cytNucPapPam.tab"))
     data.frame(a = coef(m)[1], b = coef(m)[2])
   })
   
-#   ggplot(df.cytNuc.reads, aes( nt,  rep1.frac.pseudo)) + 
-#     geom_point() + #geom_smooth(method="lm")+
-#     facet_grid(cell~localization) + thisTheme +
-#     geom_abline(slope=0,intercept=0.5,color="red") +
-#     geom_abline(data=coefs, aes(intercept=a, slope=b))
-#   
-  #Pool14nmol.ul
 
-#   coefs <- ddply(df.cytNuc.reads, .(cell,localization), function(df) {
-#     m <- glm( value.ave ~ Pool15nmol.ul, data=df,family=poisson(link = "log"))
-#     data.frame(a = coef(m)[1], b = coef(m)[2])
-#   })
-#   
-#   ggplot(df.cytNuc.reads, aes( Pool15nmol.ul,  value.ave)) + 
-#     geom_point() + #geom_smooth(method="lm")+
-#     facet_grid(cell~localization) + thisTheme +
-#     geom_abline(slope=0,intercept=0.5,color="red") +
-#     geom_abline(data=coefs, aes(intercept=a, slope=b))
-  
 }
 
 
@@ -1235,9 +1218,8 @@ applyPseudoValByVar2 <- function(value,var){
   value + cts[var] 
 }
 
-plotTotalReadsBtwnReps <- function(){
+getDataTotalReadsBtwnReps <- function(){
   df.together <- getTranscriptDataCelltypes( rnaExtract="longPolyA")
-  exportAsTable(file=getFullPath("/data/fluxCapDataAllCells.tab"), df=df.together)
   df.together$isSpikeIn <- 0
   df.together[grep(df.together$gene_id, pattern = "ERCC"), "isSpikeIn" ] <- 1
   pc <- readLines(pc.v19.list)
@@ -1246,7 +1228,12 @@ plotTotalReadsBtwnReps <- function(){
   df.together[which(df.together$gene_id %in% pc),"region"] <- "mRNA"
   df.together[which(df.together$gene_id %in% lnc),"region"] <- "lncRNA"
   
-  df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "transTotalRPKM", "transcriptTotalRPKM_spikeIn","transcriptTotalReads")]
+  
+  df.together <- as.data.frame(group_by(df.together, cell, localization,rnaExtract,replicate) %.% 
+                       transform(RPKM_80norm = apply80norm(transTotalRPKM) * 1000000))
+  exportAsTable(file=getFullPath("/data/fluxCapDataAllCells.tab"), df=df.together)
+  
+  df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "transTotalRPKM", "transcriptTotalRPKM_spikeIn","transcriptTotalReads","RPKM_80norm")]
   
   df.rep.1 <- subset(df.abbrev, replicate == 1)
   df.rep.2 <- subset(df.abbrev, replicate == 2)
@@ -1317,6 +1304,8 @@ plotTotalReadsBtwnReps <- function(){
   
   
 plotDifferenceBetweenReps <- function(file =getFullPath("/data/fluxCapData-lpa-proc.tab") )  {
+  
+  df.cytNuc <- read.csv(file=file, stringsAsFactors=FALSE, sep ="\t")
   df.cytNuc.rpkmSpike <- df.cytNuc[which(df.cytNuc$variable =="transcriptTotalRPKM_spikeIn"),]
   df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$gene_id %in% pc),"region"] <- "mRNA"
   df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$gene_id %in% lnc),"region"] <- "lncRNA"
@@ -1326,6 +1315,8 @@ plotDifferenceBetweenReps <- function(file =getFullPath("/data/fluxCapData-lpa-p
   df.cytNuc.rpkm[which(df.cytNuc.rpkm$gene_id %in% pc),"region"] <- "mRNA"
   df.cytNuc.rpkm[which(df.cytNuc.rpkm$gene_id %in% lnc),"region"] <- "lncRNA"
   
+  df.cytNuc.rpkm80<- df.cytNuc[which(df.cytNuc$variable =="RPKM_80norm"),]
+  
   
   ggplot(df.cytNuc.rpkmSpike, aes(x=value.rep1,y=value.rep2,color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
@@ -1333,11 +1324,18 @@ plotDifferenceBetweenReps <- function(file =getFullPath("/data/fluxCapData-lpa-p
     geom_abline(slope=1,intercept=0)+ xlab("RPKM spike norm.") + ylab("RPKM spike norm")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkmSpikeIn-vsReps.png"), height=12,width=5)
 
+  ggplot(df.cytNuc.rpkm80, aes(x=value.rep1,y=value.rep2,color=region)) + geom_point() + 
+    facet_grid(cell~localization,scale="free") + thisTheme +
+    ggtitle("RPKM normalized by sum of middle 80 In\nLongPolyA only")+ 
+    geom_abline(slope=1,intercept=0)+ xlab("RPKM 80 norm.") + ylab("RPKM 80 norm")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkm80-vsReps.png"), height=12,width=5)
+  
+  
   ggplot(df.cytNuc.rpkm, aes(x=value.rep1,y=value.rep2,color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RPKM\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("RPKM") + ylab("RPKM ")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkmSpikeIn-vsReps.png"), height=12,width=5)
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkm-vsReps.png"), height=12,width=5)
  
   ggplot(df.cytNuc.rpkmSpike, aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
@@ -1345,11 +1343,19 @@ plotDifferenceBetweenReps <- function(file =getFullPath("/data/fluxCapData-lpa-p
     geom_abline(slope=1,intercept=0)+ xlab("RPKM spike norm.") + ylab("RPKM spike norm")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkmSpikeIn-log-vsReps.png"), height=12,width=5)
   
+  ggplot(df.cytNuc.rpkm80, aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
+    facet_grid(cell~localization,scale="free") + thisTheme +
+    ggtitle("RPKM normalized by sum of middle 80 In\nLongPolyA only")+ 
+    geom_abline(slope=1,intercept=0)+ xlab("RPKM 80 norm.") + ylab("RPKM 80 norm")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkm80-log-vsReps.png"), height=12,width=5)
+  
+  
+  
   ggplot(df.cytNuc.rpkm, aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RPKM\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("RPKM") + ylab("RPKM ")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkmSpikeIn-log-vsReps.png"), height=12,width=5)
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkm-log-vsReps.png"), height=12,width=5)
   
 #  tmp <- df.cytNuc.rpkm[which(df.cytNuc.rpkm$cell == "A549" &  df.cytNuc.rpkm$localization == "cytosol"),]
 
@@ -1363,6 +1369,13 @@ plotDifferenceBetweenReps <- function(file =getFullPath("/data/fluxCapData-lpa-p
     ggtitle("RPKM normalized by Spike In\nLongPolyA only\nSpike in only")+ 
     geom_abline(slope=1,intercept=0) + xlab("RPKM spike norm.") + ylab("RPKM spike norm")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkmSpikeIn-spikeOnly-log-vsReps.png"), height=12,width=5)
+
+  ggplot(df.cytNuc.rpkm80[which(df.cytNuc.rpkm80$isSpikeIn == 1),], aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
+    facet_grid(cell~localization,scale="free") + thisTheme +
+    ggtitle("RPKM normalized by sum of middle 80\nLongPolyA only\nSpike in only")+ 
+    geom_abline(slope=1,intercept=0) + xlab("RPKM 80 norm.") + ylab("RPKM 80 norm")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkm80-spikeOnly-log-vsReps.png"), height=12,width=5)
+  
   
   ggplot(df.cytNuc.rpkm[which(df.cytNuc.rpkm$isSpikeIn == 1),], aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
@@ -1413,54 +1426,49 @@ plotDifferenceBetweenReps <- function(file =getFullPath("/data/fluxCapData-lpa-p
   melt.df <- melt(m.df, id.vars=c("cell", "localization", "measure","region"))
   m.df$frac.rep1 = with(m.df, (sum.rep1)/(sum.rep1 + sum.rep2))
   
-  ggplot(subset(m.df,localization=="cytosol"), aes(x=measure,y=frac.rep1)) + 
-    geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
-    facet_grid(cell~region) + scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM", "transcriptTotalRPKM_spikeIn"),
-                                                labels=c("reads", "RPKM", "RPKM_norm")) +
-    thisTheme +
-    ggtitle("fraction of cytosol rep1/(rep1 + rep2) reads/RPKM...")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/readCount-cyt-cellVregion.png"), height=12,width=5)
-
-  ggplot(subset(m.df,localization=="cytosol"), aes(x=measure,y=frac.rep1)) + 
-    geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
-    facet_grid(~region) + 
-    scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM", "transcriptTotalRPKM_spikeIn"),
-                                               labels=c("reads", "RPKM", "RPKM_norm")) +
-    thisTheme + ggtitle("fraction of cytosol\nreads/RPKM/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/readCount-cyt-region.png"), height=7,width=5)
-  
-  ggplot(subset(m.df,localization=="cytosol"), aes(x=measure,y=frac.rep1)) + 
-    geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
-    facet_grid(~region) + 
-    scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM", "transcriptTotalRPKM_spikeIn"),
-                     labels=c("reads", "RPKM", "RPKM_norm")) +
-    thisTheme + ggtitle("fraction of nuc\nreads/RPKM/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/readCount-nuc-region.png"), height=7,width=5)
-  
+ 
   
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) +  
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     facet_grid(localization~cell) + 
-    scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM", "transcriptTotalRPKM_spikeIn"),
-                     labels=c("reads", "RPKM", "RPKM_norm")) +
+    scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM","RPKM_80norm", "transcriptTotalRPKM_spikeIn"),
+                     labels=c("reads", "RPKM","RPKM_80", "RPKM_norm")) +
     thisTheme + ggtitle("cytosol & nucleus normalization\nreads/RPKM/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/readCount-cytNuc-region.png"), height=5,width=12)
   
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     
-    scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM", "transcriptTotalRPKM_spikeIn"),
-                     labels=c("reads", "RPKM", "RPKM_norm")) +
+    scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM","RPKM_80norm", "transcriptTotalRPKM_spikeIn"),
+                     labels=c("reads", "RPKM","RPKM_80", "RPKM_norm")) +
     thisTheme2 + ggtitle("fraction of cytosol & nucleus \nreads/RPKM/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/readCount-cytNuc-combined.png"), height=5,width=10)
   
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     facet_grid(~localization) +
-    scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM", "transcriptTotalRPKM_spikeIn"),
-                     labels=c("reads", "RPKM", "RPKM_norm")) +
+    scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM","RPKM_80norm", "transcriptTotalRPKM_spikeIn"),
+                     labels=c("reads", "RPKM","RPKM_80", "RPKM_norm")) +
     thisTheme2 + ggtitle("fraction of cytosol & nucleus \nreads/RPKM/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/readCount-cytNuc-combined.png"), height=6,width=10)
+  
+  
+  
+  
+}
+  
+plotBetweenReplicatesSepByLocal <- function(){  
+  
+  df.cytNuc <- read.csv(file=file, stringsAsFactors=FALSE, sep ="\t")
+  
+  m.df <- as.data.frame(group_by(df.cytNuc, cell, localization,variable,region) %.%
+                          
+                          summarize(sum.rep1 = sum(value.rep1),
+                                    sum.rep2 = sum(value.rep2)))
+  
+  colnames(m.df) <- c("cell", "localization", "measure", "region", "sum.rep1", "sum.rep2")
+  melt.df <- melt(m.df, id.vars=c("cell", "localization", "measure","region"))
+  m.df$frac.rep1 = with(m.df, (sum.rep1)/(sum.rep1 + sum.rep2))
   
   
   #all regions
@@ -1526,7 +1534,18 @@ plotDifferenceBetweenReps <- function(file =getFullPath("/data/fluxCapData-lpa-p
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/readCount-cyt-spikeIn.png"),height=5,width=12)
 }
 
+apply80norm <- function(s){
+  s.pos <- s[which(s > 0)]
+  lowerp <- quantile(s.pos,0.2)
+  upperp <- quantile(s.pos,0.8)
+  s/sum(s[which(s > lowerp & s < upperp)])
+}
 
+modifyDf80norm <- function(s){
+  d <- as.data.frame(group_by(df.cytNuc, cell, localization,variable) %.% 
+    transform(RPKM_80norm = apply80norm(RPKM)))
+  
+}
 
 
 
