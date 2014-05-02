@@ -910,7 +910,8 @@ ggplot(df.cyt.merge[which(df.cyt.merge$variable %in% c("transcriptTotalReads", "
 
 }
 
-plotSpikeIn <- function(){
+# return data frame of cyt nuc 
+processSpikeIn <- function(){
   annot.df <- getFluxDataForOneCell()
   annot.df$rep <- ifelse(annot.df$replicate > 2, annot.df$replicate - 2, annot.df$replicate)
   annot.df$test <- paste0(annot.df$localization, annot.df$rep)
@@ -997,82 +998,89 @@ plotSpikeIn <- function(){
   
   nms <- c("reads", "length", "RPKM_byFluxC", "lengthKb", "readsPerKb", 
            "RPKM", "cell", "replicate")
-  ggplot(df.cyt[which(df.cyt$variable == "reads"),], aes(x=log10(value.rep1), y=log10(value.rep2))) + geom_point() + 
-    facet_wrap(cell~expr,scale="free") + geom_abline(slope=1,intercept=0) + 
-    ggtitle("RPKM for SpikeIn btwn replicates")
   
-  ggplot(df.cyt[which(df.cyt$variable == "reads"),], aes(x=value.rep1, y=value.rep2)) + geom_point() + 
-    facet_wrap(cell~expr,scale="free") + geom_abline(slope=1,intercept=0) + 
-    ggtitle("RPKM for SpikeIn btwn replicates")
+ df.cytNuc 
+}  
+#   ggplot(df.cyt[which(df.cyt$variable == "reads"),], aes(x=log10(value.rep1), y=log10(value.rep2))) + geom_point() + 
+#     facet_wrap(cell~expr,scale="free") + geom_abline(slope=1,intercept=0) + 
+#     ggtitle("RPKM for SpikeIn btwn replicates")
+#   
+#   ggplot(df.cyt[which(df.cyt$variable == "reads"),], aes(x=value.rep1, y=value.rep2)) + geom_point() + 
+#     facet_wrap(cell~expr,scale="free") + geom_abline(slope=1,intercept=0) + 
+#     ggtitle("RPKM for SpikeIn btwn replicates")
+#   
+#   
+#   ggplot(df.cyt[which(df.cyt$variable == "RPKM" & df.cyt$value.rep1 > 0),], aes(x=value.rep1)) + stat_ecdf() + 
+#     facet_wrap(cell~expr,scale="free") +  
+#     ggtitle("RPKM for SpikeIn btwn replicates")
+#   
+#   ggplot(df.cyt[which(df.cyt$variable == "readsPerKb" & df.cyt$value.rep1 > 0 & df.cyt$value.rep2 > 0),], 
+#          aes(x=log10(value.rep1))) + stat_ecdf() + 
+#     facet_wrap(cell~expr,scale="free") +  
+#     ggtitle("RPKM for SpikeIn btwn replicates")
+#   
+#   ggplot(df.cyt[which(df.cyt$variable == "RPKM" & df.cyt$value.rep1 > 0 & df.cyt$value.rep2 > 0),], 
+#          aes(x=gene_id,y=(value.rep1-value.rep2)/(value.rep1+value.rep2) )) + geom_point() + 
+#     facet_wrap(cell~expr) +  coord_flip() + 
+#     ggtitle("RPKM for SpikeIn btwn replicates")
+#   
+#   df.cyt <- df.cyt[order(df.cyt$value.rep1 + df.cyt$value.rep2),]
+#   ggplot(df.cyt[which(df.cyt$variable == "RPKM" & df.cyt$value.rep1 > 0 & df.cyt$value.rep2 > 0),], 
+#          aes(x=log10(value.rep1+value.rep2),y=(value.rep1-value.rep2)/(value.rep1+value.rep2) )) + geom_point() + 
+#     facet_wrap(cell~expr, scale = "free") + 
+#     ggtitle("RPKM for SpikeIn btwn replicates")
+# 
+#   unique(as.data.frame(arrange(df.cyt[which(df.cyt$cell=="GM12878"),],value.rep1))[c("gene_id")])$gene_id
+#   
+#   ggplot(df.cyt[which(df.cyt$variable == "RPKM"),], 
+#          aes(x=gene_id,y=(value.rep1+value.rep2))) +  geom_point(aes(order = sample(seq_along(value.rep1))))+
+#     facet_wrap(cell~expr,scale="free") +  
+#     scale_x_discrete(limits=labelOrder) + 
+#     ggtitle("RPKM for SpikeIn btwn replicates")
+#   
+#   ggplot(df.cyt[which(df.cyt$variable =="RPKM") ,], aes(log10(value.rep1), x=log(Pool14nmol.ul,base=2),color=percentGC)) +
+#     geom_point() + facet_wrap(cell~expr, scale = "free") + theme_bw()
   
+#  df.test <- df.cyt[which(df.cyt$cell == "A549" & df.cyt$localization == "cytosol" & df.cyt$rnaExtract == "longPolyA"),]
+#  df.test.reads <- df.test[which(df.test$variable == "reads"),]
+#  df.test.model.rep1 <- lm(value.rep1 ~ Pool14nmol.ul + percentGC + nt, data=df.test)
+#  df.test.model.rep2 <- lm(log(value.rep2) ~ log(Pool14nmol.ul) + percentGC + nt, data=df.test[which(df.test$value.rep2 > 0 & df.test$variable == "reads"),])
+#  dtr <- glm(value.rep1 ~ Pool14nmol.ul + percentGC + nt,
+#                            data=df.test.reads, 
+#                            family=poisson(link = "log"))
   
-  ggplot(df.cyt[which(df.cyt$variable == "RPKM" & df.cyt$value.rep1 > 0),], aes(x=value.rep1)) + stat_ecdf() + 
-    facet_wrap(cell~expr,scale="free") +  
-    ggtitle("RPKM for SpikeIn btwn replicates")
-  
-  ggplot(df.cyt[which(df.cyt$variable == "readsPerKb" & df.cyt$value.rep1 > 0 & df.cyt$value.rep2 > 0),], 
-         aes(x=log10(value.rep1))) + stat_ecdf() + 
-    facet_wrap(cell~expr,scale="free") +  
-    ggtitle("RPKM for SpikeIn btwn replicates")
-  
-  ggplot(df.cyt[which(df.cyt$variable == "RPKM" & df.cyt$value.rep1 > 0 & df.cyt$value.rep2 > 0),], 
-         aes(x=gene_id,y=(value.rep1-value.rep2)/(value.rep1+value.rep2) )) + geom_point() + 
-    facet_wrap(cell~expr) +  coord_flip() + 
-    ggtitle("RPKM for SpikeIn btwn replicates")
-  
-  df.cyt <- df.cyt[order(df.cyt$value.rep1 + df.cyt$value.rep2),]
-  ggplot(df.cyt[which(df.cyt$variable == "RPKM" & df.cyt$value.rep1 > 0 & df.cyt$value.rep2 > 0),], 
-         aes(x=log10(value.rep1+value.rep2),y=(value.rep1-value.rep2)/(value.rep1+value.rep2) )) + geom_point() + 
-    facet_wrap(cell~expr, scale = "free") + 
-    ggtitle("RPKM for SpikeIn btwn replicates")
-
-  unique(as.data.frame(arrange(df.cyt[which(df.cyt$cell=="GM12878"),],value.rep1))[c("gene_id")])$gene_id
-  
-  ggplot(df.cyt[which(df.cyt$variable == "RPKM"),], 
-         aes(x=gene_id,y=(value.rep1+value.rep2))) +  geom_point(aes(order = sample(seq_along(value.rep1))))+
-    facet_wrap(cell~expr,scale="free") +  
-    scale_x_discrete(limits=labelOrder) + 
-    ggtitle("RPKM for SpikeIn btwn replicates")
-  
-  ggplot(df.cyt[which(df.cyt$variable =="RPKM") ,], aes(log10(value.rep1), x=log(Pool14nmol.ul,base=2),color=percentGC)) +
-    geom_point() + facet_wrap(cell~expr, scale = "free") + theme_bw()
-  
-  df.test <- df.cyt[which(df.cyt$cell == "A549" & df.cyt$localization == "cytosol" & df.cyt$rnaExtract == "longPolyA"),]
-  df.test.reads <- df.test[which(df.test$variable == "reads"),]
-  df.test.model.rep1 <- lm(value.rep1 ~ Pool14nmol.ul + percentGC + nt, data=df.test)
-  df.test.model.rep2 <- lm(log(value.rep2) ~ log(Pool14nmol.ul) + percentGC + nt, data=df.test[which(df.test$value.rep2 > 0 & df.test$variable == "reads"),])
-  dtr <- glm(value.rep1 ~ Pool14nmol.ul + percentGC + nt,
-                            data=df.test.reads, 
-                            family=poisson(link = "log"))
-  
-  dt <- glm(value.rep1 ~ Pool14nmol.ul + percentGC + nt,
-             data=df.test.reads)
-  
-  
-  df.c <- rbind(df.cyt[which(df.cyt$variable == "RPKM" & df.cyt$value.rep1 > 0),],
-                df.nuc[which(df.nuc$variable == "RPKM" & df.nuc$value.rep1 > 0),])
-  
- df.c.gm <- df.c[which(df.c$cell == "GM12878"),]
-  
-  ggplot(df.c.gm , aes(x=value.rep1, y=value.rep2)) + geom_point() + 
-    facet_grid(cell~expr) + geom_abline(slope=1,intercept=0) + 
-    ggtitle("RPKM for SpikeIn btwn replicates")
+ # dt <- glm(value.rep1 ~ Pool14nmol.ul + percentGC + nt,
+ #            data=df.test.reads)
   
   
+ # df.c <- rbind(df.cyt[which(df.cyt$variable == "RPKM" & df.cyt$value.rep1 > 0),],
+ #               df.nuc[which(df.nuc$variable == "RPKM" & df.nuc$value.rep1 > 0),])
   
-  ggplot(df.c.gm , aes(x=value.rep1, y=value.rep2)) + geom_point() + 
-    facet_grid(cell~expr) + geom_abline(slope=1,intercept=0) + 
-    ggtitle("RPKM for SpikeIn btwn replicates") + xlim(0,500) + ylim(0,500)
+# df.c.gm <- df.c[which(df.c$cell == "GM12878"),]
+  
+#   ggplot(df.c.gm , aes(x=value.rep1, y=value.rep2)) + geom_point() + 
+#     facet_grid(cell~expr) + geom_abline(slope=1,intercept=0) + 
+#     ggtitle("RPKM for SpikeIn btwn replicates")
+#   
+#   
+#   
+#   ggplot(df.c.gm , aes(x=value.rep1, y=value.rep2)) + geom_point() + 
+#     facet_grid(cell~expr) + geom_abline(slope=1,intercept=0) + 
+#     ggtitle("RPKM for SpikeIn btwn replicates") + xlim(0,500) + ylim(0,500)
+#   
+#   
+#   ggplot(df.c.gm , aes(x=log10(value.rep1), y=log10(value.rep2),color=percentGC)) + geom_point() + 
+#     facet_grid(cell~expr,scale="free") + geom_abline(slope=1,intercept=0) + 
+#     ggtitle(paste("Celltype->",celltype,"\nRPKM for SpikeIn btwn replicates")) + thisTheme2
   
   
-  ggplot(df.c.gm , aes(x=log10(value.rep1), y=log10(value.rep2),color=percentGC)) + geom_point() + 
-    facet_grid(cell~expr,scale="free") + geom_abline(slope=1,intercept=0) + 
-    ggtitle(paste("Celltype->",celltype,"\nRPKM for SpikeIn btwn replicates")) + thisTheme2
-  
-  
-  
+plotSpikeInOnly <- function(file=getFullPath("./data/spikeIn-cytNucPapPam.tab"))
+  df.cytNuc <- read.csv(file=file, sep="\t", stringsAsFactors=FALSE)
   # determine the relationship between fraction of reads(expected value = 1/2) and nucleotides
   df.cytNuc.reads <- df.cytNuc[which(df.cytNuc$variable == "reads"),]
+ 
+  
+  
   coefs <- ddply(df.cytNuc.reads, .(cell,localization), function(df) {
     m <- lm(rep1.frac.pseudo ~ nt, data=df)
     data.frame(a = coef(m)[1], b = coef(m)[2])
@@ -1186,24 +1194,24 @@ plotSpikeIn <- function(){
     data.frame(a = coef(m)[1], b = coef(m)[2])
   })
   
-  ggplot(df.cytNuc.reads, aes( nt,  rep1.frac.pseudo)) + 
-    geom_point() + #geom_smooth(method="lm")+
-    facet_grid(cell~localization) + thisTheme +
-    geom_abline(slope=0,intercept=0.5,color="red") +
-    geom_abline(data=coefs, aes(intercept=a, slope=b))
-  
+#   ggplot(df.cytNuc.reads, aes( nt,  rep1.frac.pseudo)) + 
+#     geom_point() + #geom_smooth(method="lm")+
+#     facet_grid(cell~localization) + thisTheme +
+#     geom_abline(slope=0,intercept=0.5,color="red") +
+#     geom_abline(data=coefs, aes(intercept=a, slope=b))
+#   
   #Pool14nmol.ul
 
-  coefs <- ddply(df.cytNuc.reads, .(cell,localization), function(df) {
-    m <- glm( value.ave ~ Pool15nmol.ul, data=df,family=poisson(link = "log"))
-    data.frame(a = coef(m)[1], b = coef(m)[2])
-  })
-  
-  ggplot(df.cytNuc.reads, aes( Pool15nmol.ul,  value.ave)) + 
-    geom_point() + #geom_smooth(method="lm")+
-    facet_grid(cell~localization) + thisTheme +
-    geom_abline(slope=0,intercept=0.5,color="red") +
-    geom_abline(data=coefs, aes(intercept=a, slope=b))
+#   coefs <- ddply(df.cytNuc.reads, .(cell,localization), function(df) {
+#     m <- glm( value.ave ~ Pool15nmol.ul, data=df,family=poisson(link = "log"))
+#     data.frame(a = coef(m)[1], b = coef(m)[2])
+#   })
+#   
+#   ggplot(df.cytNuc.reads, aes( Pool15nmol.ul,  value.ave)) + 
+#     geom_point() + #geom_smooth(method="lm")+
+#     facet_grid(cell~localization) + thisTheme +
+#     geom_abline(slope=0,intercept=0.5,color="red") +
+#     geom_abline(data=coefs, aes(intercept=a, slope=b))
   
 }
 
@@ -1304,6 +1312,11 @@ plotTotalReadsBtwnReps <- function(){
   
   exportAsTable(file=getFullPath("/data/fluxCapData-lpa-proc.tab"), df=df.cytNuc)
   
+}
+  
+  
+  
+plotDifferenceBetweenReps <- function(file =getFullPath("/data/fluxCapData-lpa-proc.tab") )  {
   df.cytNuc.rpkmSpike <- df.cytNuc[which(df.cytNuc$variable =="transcriptTotalRPKM_spikeIn"),]
   df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$gene_id %in% pc),"region"] <- "mRNA"
   df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$gene_id %in% lnc),"region"] <- "lncRNA"
@@ -1359,26 +1372,32 @@ plotTotalReadsBtwnReps <- function(){
   
   
   #mRNA 
-  ggplot(df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$region == "lncRNA"),], aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
+  ggplot(df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$region == "mRNA"),], 
+         aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + 
+    geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
-    ggtitle("RPKM normalized by Spike In\nLongPolyA only\nlncRNA only")+ 
-    geom_abline(slope=1,intercept=0)+ xlab("RPKM spike norm.") + ylab("RPKM spike norm")
+    ggtitle("RPKM normalized by Spike In\nLongPolyA only\nmRNA only")+ 
+    geom_abline(slope=1,intercept=0)+ 
+    xlab("RPKM spike norm.") + ylab("RPKM spike norm")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkmSpikeIn-mRNAOnly-log-vsReps.png"), height=12,width=5)
   
-  ggplot(df.cytNuc.rpkm[which(df.cytNuc.rpkm$region == "lncRNA"),], aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
+  ggplot(df.cytNuc.rpkm[which(df.cytNuc.rpkm$region == "mRNA"),],
+         aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RPKM of Spike Ins\nmRNA only\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("RPKM") + ylab("RPKM ")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkm-mRNAOnly-log-vsReps.png"), height=12,width=5)
   
   #lncRNA
-  ggplot(df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$region == "lncRNA"),], aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
+  ggplot(df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$region == "lncRNA"),],
+         aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RPKM normalized by Spike In\nlncRNA only\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("RPKM spike norm.") + ylab("RPKM spike norm")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkmSpikeIn-lncOnly-log-vsReps.png"), height=12,width=5)
   
-  ggplot(df.cytNuc.rpkm[which(df.cytNuc.rpkm$region == "lncRNA"),], aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
+  ggplot(df.cytNuc.rpkm[which(df.cytNuc.rpkm$region == "lncRNA"),], 
+         aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RPKM of Spike Ins\nlncRNA only\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("RPKM") + ylab("RPKM ")
