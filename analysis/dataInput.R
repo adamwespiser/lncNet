@@ -891,7 +891,35 @@ getSpikeInsGTF <- function(){
   
   
 }
-
+getSpikeInsGTF_rsem <- function(){
+  spikeIn <- read.fasta(file=url("http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeCshlLongRnaSeq/supplemental/wgEncodeCshlLongSpikeins.fasta"))
+  lenList <- sapply(spikeIn, function(x)length(x))
+  nms <- names(lenList)
+  val <- as.numeric(unlist(lenList))
+  valp1 <- val 
+  nms.trans <- paste0(nms,"_trans")
+  nms.gene  <- paste0(nms,"_gene")
+  nms.exon  <- paste0(nms,"_exon")
+  
+  spikeInGTF.gene <- paste0(nms,"\t","NISTSpikeIn","\t","gene","\t",1,"\t",valp1,"\t",".","\t","+","\t",".","\t",
+                            "gene_id \"",nms.gene,"\";"," transcript_id \"",nms.trans,"\";")
+  spikeInGTF.trans <- paste0(nms,"\t","NISTSpikeIn","\t","transcript","\t",1,"\t",valp1,"\t",".","\t","+","\t",".","\t",
+                             "gene_id \"",nms.gene,"\";"," transcript_id \"",nms.trans,"\";")
+  spikeInGTF.exon <- paste0(nms,"\t","NISTSpikeIn","\t","exon","\t",1,"\t",valp1,"\t",".","\t","+","\t",".","\t",
+                            "gene_id \"", nms.gene, "\";"," transcript_id \"",nms.trans,"\"; ", " exon_id \"",nms.exon,"\";")
+  gtfLines <- paste0(spikeInGTF.gene,"\n",spikeInGTF.trans,"\n",spikeInGTF.exon,"\n")
+  
+  
+  
+  cat(gtfLines, file="~/sandbox/spikeIn14_rsem.gtf")
+  # perl -pi -e 's/^ //g'  ~/sandbox/spikeIn14.gtf 
+  # scp ~/sandbox/spikeIn14_rsem.gtf aw30w@ghpcc06.umassrc.org:/project/umw_zhiping_weng/wespisea/rna-seq/
+  # cat /project/umw_zhiping_weng/wespisea/rna-seq/gencode.v19.annotation.gtf /project/umw_zhiping_weng/wespisea/rna-seq/spikeIn14_rsem.gtf > /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn_rsem.gtf
+  
+  
+  
+  
+}
 
 
 getBedopsIntersect <- function(infile,tag){
@@ -1009,6 +1037,33 @@ runFASTQC <- function(){
 }
 
 
+runRSEMonCytNuc <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol"))
+  
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
+  
+  # rsem-calculate-expression --paired-end wgEncodeCshlLongRnaSeqSknshraCellLongnonpolyaFastqRd1Rep1.fastq.gz wgEncodeCshlLongRnaSeqSknshraCellPapFastqRd2Rep1.fastq.gz /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ -p 8 --ci-memory 8G --samtools-sort-mem 8GB 
+  read1 <- file.path(rnaseqdir,df.comb$read1.filename)
+  read2 <- file.path(rnaseqdir,df.comb$read2.filename)
+  rsemOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM",df.comb$bare)
+  
+  o1 <- paste0("rsem-calculate-expression --num-threads 8 -ci-memory 40G --samtools-sort-mem 40GB --paired-end", read1,read2, "/project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/",rsemOutput )
+  write(o1, file="~/sandbox/rsemReadMap")
+  scpFile(file.local="~/sandbox/rsemReadMap", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 600 -Q short -t rsem
+  
+  
+  
+}
+
 
 
 generateStarBedops<- function(){
@@ -1120,6 +1175,13 @@ generateStarBedops<- function(){
   write(o7, file="~/sandbox/ssjcountRun")
   scpFile(file.local="~/sandbox/ssjcountRun", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/ssjcountRun -c 2 -m 8192 -W 600 -Q short -t ssj
+  
+  
+  
+  # rsem-calculate-expression --paired-end wgEncodeCshlLongRnaSeqSknshraCellLongnonpolyaFastqRd1Rep1.fastq.gz wgEncodeCshlLongRnaSeqSknshraCellPapFastqRd2Rep1.fastq.gz /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ -p 8 --ci-memory 8G --samtools-sort-mem 8GB 
+  
+  
+  
   
   
   
