@@ -1055,11 +1055,10 @@ runRSEMonCytNuc <- function(){
   read2 <- file.path(rnaseqdir,df.comb$read2.filename)
   rsemOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM",df.comb$bare)
   
-  o1 <- paste0("rsem-calculate-expression --num-threads 8 -ci-memory 40G --samtools-sort-mem 40GB --paired-end", read1,read2, "/project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/",rsemOutput )
+  o1 <- paste0("rsem-calculate-expression --quiet --num-threads 8 -ci-memory 40960  --paired-end <(zcat ", read1,") <(zcat ",read2, ") /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ ",rsemOutput )
   write(o1, file="~/sandbox/rsemReadMap")
   scpFile(file.local="~/sandbox/rsemReadMap", dir.remote="~/bin/")
-  # perl /home/aw30w/bin/runTask.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 600 -Q short -t rsem
-  
+  # perl /home/aw30w/bin/runTaskR301.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 600 -Q short -t rsem
   
   
 }
@@ -1378,5 +1377,37 @@ downloadCellDataLpa <- function(){
   
   
 }
+
+
+plotReadQualityFastq <- function(){
+  df.read <- read.csv(file="~/sandbox/readStats.summary", sep="\t", stringsAsFactors=FALSE, header=FALSE)
+  colnames(df.read) <- c("score", "measure", "filename")
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  
+  m <- merge(x=df.read, df, by="filename",all.x=TRUE,all.y=FALSE)
+  m$label <- with(m, paste0(cell,localization,rnaExtract,replicate,sep="."))
+  ggplot(m,aes(x=measure,y=label, fill=score))+geom_tile() +
+    scale_fill_manual(values = c("FAIL" = "red","WARN" = "yellow","PASS" = "green"))+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1,size=12))+
+    ggtitle("FASTQC report\nvalues for each paired end")
+  ggsave(file=getFullPath("plots/rnaExpr/ENCODE-fastqc/fastqc-score-heatmap.pdf"), height=12,width=7)
+  
+  ggplot(subset(m,rnaExtract=="longPolyA"),aes(x=measure,y=label, fill=score))+geom_tile() +
+    scale_fill_manual(values = c("FAIL" = "red","WARN" = "yellow","PASS" = "green"))+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1,size=12))+
+    ggtitle("FASTQC report\nvalues for each paired end")
+  ggsave(file=getFullPath("plots/rnaExpr/ENCODE-fastqc/fastqc-longPolyA-score-heatmap.pdf"), height=10,width=7)
+  
+}
+
+
+
+
+
+
+
+
+
+
 
 
