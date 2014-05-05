@@ -1183,8 +1183,11 @@ generateStarBedops<- function(){
   # rsem-calculate-expression --paired-end wgEncodeCshlLongRnaSeqSknshraCellLongnonpolyaFastqRd1Rep1.fastq.gz wgEncodeCshlLongRnaSeqSknshraCellPapFastqRd2Rep1.fastq.gz /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ -p 8 --ci-memory 8G --samtools-sort-mem 8GB 
   
   
-  
-  
+  cmd8 <- "java -jar -Xmx24g /home/aw30w/bin/bam2rpkm-0.06/bam2rpkm-0.06.jar -f /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn.gtf -i test.star_sort.bam -r transcript -o test.trans.gtf"
+  o8 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd8,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  write(o8, file="~/sandbox/rpkm-tool")
+  scpFile(file.local="~/sandbox/rpkm-tool", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool -c 5 -m 8192 -W 600 -Q short -t rpkm
   
   
   
