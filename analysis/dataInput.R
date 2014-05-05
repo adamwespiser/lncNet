@@ -1053,13 +1053,16 @@ runRSEMonCytNuc <- function(){
   # rsem-calculate-expression --paired-end wgEncodeCshlLongRnaSeqSknshraCellLongnonpolyaFastqRd1Rep1.fastq.gz wgEncodeCshlLongRnaSeqSknshraCellPapFastqRd2Rep1.fastq.gz /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ -p 8 --ci-memory 8G --samtools-sort-mem 8GB 
   read1 <- file.path(rnaseqdir,df.comb$read1.filename)
   read2 <- file.path(rnaseqdir,df.comb$read2.filename)
+  read1.fa <- gsub(x=read1,pattern=".gz",replacement="")
+  read2.fa <- gsub(x=read1,pattern=".gz",replacement="")
+  
   rsemOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM",df.comb$bare)
   
-  o1 <- paste0("rsem-calculate-expression --quiet --num-threads 8 -ci-memory 40960  --paired-end <(zcat ", read1,") <(zcat ",read2, ") /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ ",rsemOutput )
+  o1 <- paste0("gzip -d ",read1,";;gzip -d ",read2,";;rsem-calculate-expression --num-threads 8 -ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ ",rsemOutput )
   write(o1, file="~/sandbox/rsemReadMap")
   scpFile(file.local="~/sandbox/rsemReadMap", dir.remote="~/bin/")
-  # perl /home/aw30w/bin/runTaskR301.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 600 -Q short -t rsem
-  
+  # perl /home/aw30w/bin/runTaskR301.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 2880 -Q long -t rsem
+  #cat ~/bin/rsemReadMap | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem" -i "{}"
   
 }
 
