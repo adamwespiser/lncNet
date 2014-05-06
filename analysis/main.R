@@ -79,6 +79,9 @@ source(getFullPath("analysis/plotIntronCounts.R"))
 source(getFullPath("analysis/plotReadCounts.R"))
 source(getFullPath("analysis/fluxScript.R"))
 source(getFullPath("analysis/spikeIn.R"))
+source(getFullPath("analysis/rsemScript-data.R"))
+source(getFullPath("analysis/rsemScript-plot.R"))
+source(getFullPath("analysis/rpkmFromBam-data.R"))
 #source(getFullPath("analysis/searchForExpr.R"))
 
 

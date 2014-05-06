@@ -66,6 +66,7 @@ processGencodeV10.lnc <- function(file = gencodeV10.lnc, out = gencodeV10.lnc.ta
   df <- read.csv(file=p,sep=" ", stringsAsFactors=FALSE,blank.lines.skip=TRUE,header=FALSE) 
   exportAsTable(df=df,file=out)
 }
+
 getGencodeV10.lnc <- function(){
   if (!file.exists(gencodeV7.lnc.tab)){
     processGencodeV7.lnc()
@@ -86,6 +87,7 @@ processGencodeV10.pc <- function(file = gencodeV10.pc, out = gencodeV10.pc.tab){
   colnames(df) <- c("transcript_id", "gene_id")
   exportAsTable(df=df,file=out)
 }
+
 getGencodeV10.pc <- function(){
   if (!file.exists(gencodeV10.pc.tab)){
     processGencodeV10.pc()
