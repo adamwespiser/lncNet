@@ -916,9 +916,6 @@ getSpikeInsGTF_rsem <- function(){
   # scp ~/sandbox/spikeIn14_rsem.gtf aw30w@ghpcc06.umassrc.org:/project/umw_zhiping_weng/wespisea/rna-seq/
   # cat /project/umw_zhiping_weng/wespisea/rna-seq/gencode.v19.annotation.gtf /project/umw_zhiping_weng/wespisea/rna-seq/spikeIn14_rsem.gtf > /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn_rsem.gtf
   
-  
-  
-  
 }
 
 

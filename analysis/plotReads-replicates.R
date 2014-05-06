@@ -125,22 +125,37 @@ plotSpikeInOnly <- function(file=getFullPath("./data/spikeIn-cytNucPapPam.tab"))
 }
 
 
+df.cytNuc 
+df.cytNuc.rpkm <- df.cytNuc[which(df.cytNuc$variable =="transcriptTotalReads"),]
+df.cytNuc.rpkm.v1_0 <- df.cytNuc.rpkm[which(df.cytNuc.rpkm$value.rep1 == 0),]
+df.cytNuc.rpkm.v2_0 <- df.cytNuc.rpkm[which(df.cytNuc.rpkm$value.rep2 == 0),]
+df.cytNuc.rpkm.v1_0$rep = 1
+df.cytNuc.rpkm.v1_0$value = df.cytNuc.rpkm.v1_0$value.rep2
+df.cytNuc.rpkm.v2_0$rep = 2
+df.cytNuc.rpkm.v2_0$value = df.cytNuc.rpkm.v2_0$value.rep1
+cols<- c("cell", "gene_id", "localization", "rnaExtract", "rep", "value", "variable")
+df.comb <- rbind(df.cytNuc.rpkm.v1_0[cols],df.cytNuc.rpkm.v2_0[cols])
+
+ggplot(df.comb,aes(log10(value)))+geom_bar()+
+  facet_grid(cell~localization,scale="free") + thisTheme 
 
 
 plotDifferenceBetweenRepsFlux <- function(file =getFullPath("/data/fluxCapData-lpa-proc.tab") )  {
   
-  df.cytNuc <- read.csv(file=file, stringsAsFactors=FALSE, sep ="\t")
-  df.cytNuc.rpkmSpike <- df.cytNuc[which(df.cytNuc$variable =="transcriptTotalRPKM_spikeIn"),]
+  df.cytNuc1 <- read.csv(file=file, stringsAsFactors=FALSE, sep ="\t")
+  
+  
+  df.cytNuc.rpkmSpike <- df.cytNuc1[which(df.cytNuc1$variable == "transcriptTotalRPKM_spikeIn"),]
   #df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$gene_id %in% pc),"region"] <- "mRNA"
   #df.cytNuc.rpkmSpike[which(df.cytNuc.rpkmSpike$gene_id %in% lnc),"region"] <- "lncRNA"
   
-  df.cytNuc.rpkm <- df.cytNuc[which(df.cytNuc$variable =="transTotalRPKM"),]
+  df.cytNuc.rpkm <- df.cytNuc1[which(df.cytNuc1$variable == "transTotalRPKM"),]
   #df.cytNuc.rpkm[which(df.cytNuc.rpkm$gene_id %in% pc),"region"] <- "mRNA"
   #df.cytNuc.rpkm[which(df.cytNuc.rpkm$gene_id %in% lnc),"region"] <- "lncRNA"
   
-  df.cytNuc.rpkm80<- df.cytNuc[which(df.cytNuc$variable =="RPKM_80norm"),]
+  df.cytNuc.rpkm80 <- df.cytNuc1[which(df.cytNuc1$variable == "RPKM_80norm"),]
   #transcriptTotalConc
-  df.cytNuc.conc<- df.cytNuc[which(df.cytNuc$variable =="transcriptTotalConc"),]
+  df.cytNuc.conc <- df.cytNuc1[which(df.cytNuc1$variable == "transcriptTotalConc"),]
   
   
   # rep vs. rep LOG
@@ -150,8 +165,7 @@ plotDifferenceBetweenRepsFlux <- function(file =getFullPath("/data/fluxCapData-l
     geom_abline(slope=1,intercept=0)+ xlab("concentration(nm/ul)") + ylab("concentration(nm/ul)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/conc-vsReps.png"), height=12,width=5)
   
-  
-  
+
   ggplot(df.cytNuc.rpkmSpike, aes(x=value.rep1,y=value.rep2,color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("Flux capicitor\nRPKM normalized by Spike In\nLongPolyA only")+ 
@@ -184,6 +198,7 @@ plotDifferenceBetweenRepsFlux <- function(file =getFullPath("/data/fluxCapData-l
     ggtitle("Flux capicitor\nRPKM normalized by Spike In\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("RPKM spike norm.") + ylab("RPKM spike norm")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/rpkmSpikeIn-log-vsReps.png"), height=12,width=5)
+  
   
   ggplot(df.cytNuc.rpkm80, aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
@@ -295,10 +310,10 @@ plotDifferenceBetweenRepsFlux <- function(file =getFullPath("/data/fluxCapData-l
     thisTheme2 + ggtitle("Flux capicitor\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/readCount-cytNuc-all-combined.png"), height=5,width=10)
   
+ 
   ggplot(m.df, aes(x=measure,y=frac.rep1)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") + ylim(0,1) +
-    
-    scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM","RPKM_80norm","transcriptTotalConc", "transcriptTotalRPKM_spikeIn"),
+      scale_x_discrete(limits=c("transcriptTotalReads", "transTotalRPKM","RPKM_80norm","transcriptTotalConc", "transcriptTotalRPKM_spikeIn"),
                      labels=c("reads", "RPKM","RPKM_80","[conc]", "RPKM_norm")) +
     thisTheme2 + ggtitle("Flux capicitor\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/starSpikeIn-ERCC/readCount-cytNuc-all-combined-join.png"), height=5,width=10)

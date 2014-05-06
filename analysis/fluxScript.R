@@ -71,8 +71,6 @@ readInFluxGtfParsed <- function(file="/home/wespisea/data/flux/wgEncodeCshlLongR
   }
   
 
-  
-  
   millReads <- max(with(df.transcript,1/( RPKM_byFluxC/(reads/(lengthKb)))),na.rm=TRUE)
   df.transcript$readsPerKb = with(df.transcript, (reads/lengthKb))
   df.transcript$RPKM = with(df.transcript, readsPerKb/millionsOfReads)
@@ -183,7 +181,7 @@ getTranscriptData <- function(celltype,rnaExtract){
   
 }
 
-getTranscriptDataCelltypes <- function(celltypes=c("A549", "GM12878", "HeLa-S3", "HepG2","HUVEC" , "K562","NHEK","SK-N-SH"),rnaExtract){
+getTranscriptDataCelltypes <- function(celltypes=c("A549", "GM12878", "HeLa-S3", "HepG2","HUVEC" , "K562","NHEK","SK-N-SH","IMR90","MCF-7"),rnaExtract){
   annot.df <- getFluxDataForOneCell()
   annot.df <- annot.df[which(annot.df$cell %in% celltypes), ]
   if(!missing(rnaExtract)){
@@ -193,8 +191,10 @@ getTranscriptDataCelltypes <- function(celltypes=c("A549", "GM12878", "HeLa-S3",
   
   df.together <- data.frame()
   for(i in seq_along(annot.df$cell)){
-    print(paste("finding data for -> ", annot.df$cell[i]))
+    print(paste("finding data for -> ", annot.df$cell[i],";replicate -> " annot.df$replicate[i], ";cell ->",annot.df$localization[i]))
     df.local <- readInFluxGtfParsed(file=annot.df$fluxFile[i])
+    print(paste("entries read -> ", dim(df.local)[1]))
+    df.local$entries <- dim(df.local)[1]
     df.local$cell <- annot.df$cell[i]
     df.local$localization <- annot.df$localization[i]
     df.local$rnaExtract <- annot.df$rnaExtract[i]
@@ -214,8 +214,7 @@ plotFluxData <- function(){
   df.together <- getTranscriptData(celltype="GM12878")
   pc <- readLines(pc.v19.list)
   lnc <- readLines(lnc.v19.list)
-  
-  
+   
   ggplot(df.together, aes(y=(intronTotalReads/intronTotalLength),x= transTotalRPKM,color=gene_type))+geom_point()+
     theme_bw() + scale_color_manual(values=c("red","green","yellow")) +xlim(0,1000) + ylim(0,50)+
     ggtitle("K562 + GM12878 , all transcripts")
@@ -273,8 +272,6 @@ plotFluxData <- function(){
   df.gm.lpa.ratio[which(df.gm.lpa.ratio$gene_id %in% lnc),"gene_type"] <- "lncRNA"
   df.gm.lpa.ratio[which(df.gm.lpa.ratio$gene_id %in% pc),"gene_type"] <- "mRNA"
   df.gm.lpa.ratio <- df.gm.lpa.ratio[which(df.gm.lpa.ratio$RPKMSum.nuc > 0 & df.gm.lpa.ratio$RPKMSum.cyt > 0 ),]
-  
-  
   
   
   ggplot(df.gm.lpa.ratio, aes(y=RPKMSum.cyt,x=RPKMSum.nuc)) + geom_point()  +
@@ -1003,7 +1000,8 @@ getDataTotalReadsBtwnReps <- function(){
   
   
   df.together <- as.data.frame(group_by(df.together, cell, localization,rnaExtract,replicate) %.% 
-                       mutate(RPKM_80norm = apply80norm(transTotalRPKM) * 1000000))
+                       mutate(RPKM_80norm = apply80norm(transTotalRPKM) * 1000000,
+                               RPKM_trimSum = trimmedMean80_sum(transTotalRPKM)))
   
   #  group_by(df.together, cell, localization,rnaExtract,replicate) %.% summarise(mean(RPKM_80norm/transTotalRPKM, na.rm=TRUE))
   
@@ -1084,7 +1082,16 @@ test <- function(){
   str(a)
 }
   
-  
+
+#df.together
+
+
+apply80norm2 <- function(s){
+  s.pos <- s[which(s > 0)]
+  lowerp <- quantile(s.pos,0.1)
+  upperp <- quantile(s.pos,0.9)
+  s/sum(s[which(s > lowerp & s < upperp)])
+}
 
 
 apply80norm <- function(s){
@@ -1094,13 +1101,71 @@ apply80norm <- function(s){
   s/sum(s[which(s > lowerp & s < upperp)])
 }
 
+
+trimmedMean80 <- function(s){
+  s.pos <- s[which(s > 0)]
+  lowerp <- quantile(s.pos,0.2)
+  upperp <- quantile(s.pos,0.8)
+  s/sum(s[which(s > lowerp & s < upperp)])
+}
+
+trimmedMean80_sum <- function(s){
+  s.pos <- s[which(s > 0)]
+  lowerp <- quantile(s.pos,0.2)
+  upperp <- quantile(s.pos,0.8)
+  sum(s[which(s > lowerp & s < upperp)])
+}
+
+
+
+
 modifyDf80norm <- function(s){
   d <- as.data.frame(group_by(df.cytNuc, cell, localization,variable) %.% 
     transform(RPKM_80norm = apply80norm(RPKM)))
   
 }
 
+exprOneBothNone <- function(df,colname1,colname2){
+  exprCat <- rep("none", length(df[[colname1]]))
+  exprCat <- ifelse(df[[colname1]] > 0 | df[[colname2]] > 0, "one", exprCat)
+  ifelse(df[[colname1]] > 0 & df[[colname2]] > 0, "both", exprCat)
+  
+}
 
+
+
+testA459 <- function(){
+  file=getFullPath("/data/fluxCapData-lpa-proc.tab")
+  df.cytNuc <- read.csv(file=getFullPath("/data/fluxCapData-lpa-proc.tab"),sep="\t")
+  df.cytNuc <- df.cytNuc[which(df.cytNuc$cell == "K562" & df.cytNuc$localization == "cytosol"),]
+  exportAsTable(file=getFullPath("/data/fluxCapData-K562-lpa-proc.tab"), df=df.cytNuc)
+  df.cytNuc$exprCat <- exprOneBothNone(df=df.cytNuc, "value.rep1", "value.rep2")
+  ggplot(df.cyt, aes(log10(value.rep1), log10(value.rep2)))+geom_point()+facet_wrap(~variable)
+  df.cytNuc.normSum <- df.cytNuc[which(df.cytNuc$variable == "transTotalRPKM"),]
+  df.cytNuc.normSum$variable <- "RPKM_normBySum"
+  df.cytNuc.normSum$value.rep1 <- df.cytNuc.normSum$value.rep1 / sum(df.cytNuc.normSum$value.rep1)
+  df.cytNuc.normSum$value.rep2 <- df.cytNuc.normSum$value.rep2 / sum(df.cytNuc.normSum$value.rep2)
+  df.cytNuc <- rbind(df.cytNuc, df.cytNuc.normSum)
+  ggplot(df.cytNuc, aes(log10(value.rep1), log10(value.rep2)))+geom_point()+facet_wrap(~variable) + geom_abline(intercept=0,slope=1)
+  
+  df.cytNuc.rpkm <- df.cytNuc[which(df.cytNuc$variable == "transTotalRPKM"),]
+  ints.rep1 <- sapply(1:20/20, function(x)quantile(df.cytNuc.rpkm$value.rep1[which(df.cytNuc.rpkm$value.rep1 > 0)], x))
+  
+  ggplot(df.cytNuc.rpkm, aes(log10(value.rep1))) + geom_bar() +
+           geom_vline(xintercept =log10(ints))+
+           geom_vline(xintercept =log10(ints[c(4,16)]),color="red")
+  
+  
+  ints.rep2 <- sapply(1:20/20, function(x)quantile(df.cytNuc.rpkm$value.rep2[which(df.cytNuc.rpkm$value.rep2 > 0)], x))  
+  ggplot(df.cytNuc.rpkm, aes(log10(value.rep2))) + geom_bar() +
+    geom_vline(xintercept =log10(ints))+
+    geom_vline(xintercept =log10(ints[c(4,16)]),color="red")
+  
+  
+  
+  
+
+}
 
 
 
