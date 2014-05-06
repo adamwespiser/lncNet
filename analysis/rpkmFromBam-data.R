@@ -14,8 +14,8 @@ pc.v19.list <<- "/home/wespisea/data/gtf//gencode.v19.annotation.pc.geneList"
 convertTransToGeneGtf <- function(transFile,geneFile){
   tf <- tempfile()
   system( paste("cat",transFile," | sed 's/[;\"]//g' |awk -F' ' '{print $10,$12,$14}' > ",tf))
-  trans.df <- read.csv(file=tf, sep="\t", stringsAsFactors=FALSE,header=FALSE)
-  close(tf)
+  trans.df <- read.csv(file=tf, sep=" ", stringsAsFactors=FALSE,header=FALSE)
+  file.remove(tf)
   colnames(trans.df) <- c("gene_id", "transcript_id", "RPKM")
   gene.df <- as.data.frame(group_by(trans.df, gene_id) %.% summarise(RPKM = max(RPKM))) 
   exportAsTable(df=gene.df  ,file=geneFile)
@@ -45,22 +45,24 @@ getRpkmFromBamDataForOneCell <- function( filesTxtTab="~/data/wgEncodeCshlLongRn
   df.comb$remote <- file.path(rnaseqdir,"starSpikeIn/",paste0(df.comb$bare,".trans.gtf"))
   
   if(writeCopyScript){
-    o1 <- paste0("scp aw30w@ghpcc06.umassrc.org:",df.comb$remote, " /home/wespisea/data/rpkmFromBam/")
+    o1 <- paste0("scp aw30w@ghpcc06.umassrc.org:",df.comb$remote, " /home/wespisea/data/rpkmFromBam/",paste0(df.comb$bare,".trans.gtf"))
     write(o1,file="~/sandbox/rpkmFromBamFetch")
   }
   df.comb$rpkmFromBamFile <- paste0("/home/wespisea/data/rpkmFromBam/",df.comb$bare,".trans.gtf")
-  df.comb$rfbGene <- paste0("/home/wespisea/data/rpkmFromBam/",df.comb$bare,".genes.gtf")
   df.comb <- df.comb[c("read1.localization", "read1.cell", "read1.rnaExtract","read2.replicate" ,"rpkmFromBamFile", "bare")]
-  colnames(df.comb) <- c("localization", "cell", "rnaExtract","replicate" ,"rpkmFromBamFile","rfbGene", "bare")
+  df.comb$rfbGene <- paste0("/home/wespisea/data/rpkmFromBam/",df.comb$bare,".genes.gtf")
+  colnames(df.comb) <- c("localization", "cell", "rnaExtract", "replicate", 
+                        "rpkmFromBamFile", "bare", "rfbGene")
   df.comb
 }
 
-processGeneToTranscript <- function(){
+processGeneToTranscript <- function(force=FALSE){
   annot.df <- getRpkmFromBamDataForOneCell()
   genes <- annot.df$rfbGene
   trans <- annot.df$rpkmFromBamFile
-  for ( in 1:seq_along(genes)){
-    if(file.exists(trans[i]) && ! file.exists(genes[i])){
+  for (i in seq_along(genes)){
+    if((file.exists(trans[i]) && ! file.exists(genes[i])) || force == TRUE){
+      print(annot.df$bare[i])
       convertTransToGeneGtf(transFile = trans[i], geneFile = genes[i])
     }
     
@@ -120,10 +122,10 @@ getTranscriptData_rpkmFromBam <- function(celltype,rnaExtract){
 
 getDataTotalReadsBtwnReps_rpkmFromBam <- function(){
   df.together <- getTranscriptData_rpkmFromBam( rnaExtract="longPolyA")
-  
+  df.together$RPKM <- as.numeric(df.together$RPKM)
   
   df.together <- as.data.frame(group_by(df.together, cell, localization,rnaExtract,replicate) %.% 
-                                 mutate(FPKM_80norm = apply80norm(FPKM) * 1000000))
+                                 mutate(RPKM_80norm = apply80norm(RPKM) * 1000000))
   
   #  group_by(df.together, cell, localization,rnaExtract,replicate) %.% summarise(mean(RPKM_80norm/transTotalRPKM, na.rm=TRUE))
   
