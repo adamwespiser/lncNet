@@ -86,7 +86,17 @@ getTranscriptData_RSEM <- function(celltype,rnaExtract){
 getDataTotalReadsBtwnReps_RSEM <- function(){
   df.together <- getTranscriptData_RSEM( rnaExtract="longPolyA")
    
-  
+  report.df  <- as.data.frame(group_by(df.together,cell,localization,replicate) %.%
+                                summarise(length(gene_id),
+                                          mean(TPM),
+                                          sum(TPM),
+                                          mean(FPKM),
+                                          sum(FPKM),
+                                          sum(FPKM > 0)))
+  report.df$experiment <- paste(ifelse(report.df$localization == "cytosol", "cyt", "nuc"),report.df$replicate,sep=".")
+  colnames(report.df) <- c("cell", "localization", "replicate", "genesFound", "meanTPM", 
+                           "sumTPM", "meanFPKM", "sumFPKM", "genesExpressed", "experiment")
+  exportAsTable(df=report.df, file = getFullPath("/data/rsemCapData-lpa-proc-REPORT.tab"))
   df.together <- as.data.frame(group_by(df.together, cell, localization,rnaExtract,replicate) %.% 
                                  mutate(FPKM_80norm = apply80norm(FPKM) * 1000000))
   

@@ -109,3 +109,17 @@ processDjebail <- function(){
 
 
 
+plotRPKMfromTools <- function(){
+  plotReadDistribution()
+  plotDifferenceBetweenRepsFlux()
+  plotReadDistributionRPKMfromBAM()
+  plotDifferenceBetweenRepsRPKMfromBam()
+  plotReadDistributionRSEM()
+  plotDifferenceBetweenRepsRSEM()
+}
+
+
+
+
+
+

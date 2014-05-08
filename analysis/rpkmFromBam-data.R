@@ -123,6 +123,16 @@ getTranscriptData_rpkmFromBam <- function(celltype,rnaExtract){
 getDataTotalReadsBtwnReps_rpkmFromBam <- function(){
   df.together <- getTranscriptData_rpkmFromBam( rnaExtract="longPolyA")
   df.together$RPKM <- as.numeric(df.together$RPKM)
+
+  report.df  <- as.data.frame(group_by(df.together,cell,localization,replicate) %.%
+                                summarise(length(gene_id),
+                                          mean(RPKM),
+                                          sum(RPKM),
+                                          sum(RPKM > 0)))
+  report.df$experiment <- paste(ifelse(report.df$localization == "cytosol", "cyt", "nuc"),report.df$replicate,sep=".")
+  colnames(report.df) <- c("cell", "localization", "replicate", "genesFound", "meanRPKM", 
+                           "sumRPKM","genesExpressed", "experiment")
+  exportAsTable(df=report.df, file = getFullPath("/data/rpkmFromBAMCapData-lpa-proc-REPORT.tab"))
   
   df.together <- as.data.frame(group_by(df.together, cell, localization,rnaExtract,replicate) %.% 
                                  mutate(RPKM_80norm = apply80norm(RPKM) * 1000000))
