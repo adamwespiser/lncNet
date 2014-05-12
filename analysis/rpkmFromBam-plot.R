@@ -182,7 +182,8 @@ plotDifferenceBetweenRepsRPKMfromBam <- function(file=getFullPath("/data/rpkmFro
     facet_grid(~localization) +
     scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","spikeIn_norm","concBySpikeIn"),
                      labels=c("reads","RPKM"  ,"RPKM_80","RPKM/spikeIn","Conc.")) + ylim(0,1) +
-    thisTheme2 + ggtitle("RPKMfromBam\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80\nfrac.rep1=(rep1)/(rep1 + rep2)")
+    thisTheme2 + ggtitle("RPKMfromBam\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80\nfrac.rep1=(rep1)/(rep1 + rep2)")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/readCount-cytNuc-combined.png"), height=6,width=10)
 }
 
