@@ -39,6 +39,7 @@ applyPseudoValByVar2 <- function(value,var){
 }
 getRpkmFromBamDataForOneCell <- function( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",writeCopyScript=FALSE){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df$readLength <- as.numeric(gsub(sapply(strsplit(df$readType, "x"), function(x)x[2]),pattern="D",replacement=""))
   df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol"))
   read1 <- grep(df.fastq$filename,pattern="Rd1")
   read2 <- grep(df.fastq$filename,pattern="Rd2")
@@ -55,10 +56,10 @@ getRpkmFromBamDataForOneCell <- function( filesTxtTab="~/data/wgEncodeCshlLongRn
     write(o1,file="~/sandbox/rpkmFromBamFetch")
   }
   df.comb$rpkmFromBamFile <- paste0("/home/wespisea/data/rpkmFromBam/",df.comb$bare,".trans.gtf")
-  df.comb <- df.comb[c("read1.localization", "read1.cell", "read1.rnaExtract","read2.replicate" ,"rpkmFromBamFile", "bare")]
+  df.comb <- df.comb[c("read1.localization", "read1.cell", "read1.rnaExtract","read2.replicate" ,"rpkmFromBamFile", "bare","read1.readLength")]
   df.comb$rfbGene <- paste0("/home/wespisea/data/rpkmFromBam/",df.comb$bare,".genes.gtf")
   colnames(df.comb) <- c("localization", "cell", "rnaExtract", "replicate", 
-                        "rpkmFromBamFile", "bare", "rfbGene")
+                        "rpkmFromBamFile", "bare", "readLength","rfbGene")
   df.comb
 }
 
