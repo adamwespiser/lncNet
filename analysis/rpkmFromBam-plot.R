@@ -45,13 +45,13 @@ plotDifferenceBetweenRepsRPKMfromBam <- function(file=getFullPath("/data/rpkmFro
   
   ggplot(df.cytNuc.concBySpikeIn, aes(x=value.rep1,y=value.rep2,color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
-    ggtitle("RPKMfromBam\nconcentration from spike in glm\nLongPolyA only")+ 
+    ggtitle("RPKMfromBam\nconcentration from spikeIn glm\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("rep1:[nmol/ul]") + ylab("rep2:[nmol/ul]")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/conc-vsReps.png"), height=12,width=5)
   
   ggplot(df.cytNuc.spikeIn_norm, aes(x=value.rep1,y=value.rep2,color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
-    ggtitle("RPKMfromBam\nRPKM/sum spikeIn RPKM\nLongPolyA only")+ 
+    ggtitle("RPKMfromBam\nRPKM/(sum spikeIn RPKM)\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("RPKM/(sum spikeIn RPKM ) rep1") + ylab("RPKM/(sum spike In RPKM) rep2")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/rpkmSpikeIn-vsReps.png"), height=12,width=5)
   
@@ -139,7 +139,8 @@ plotDifferenceBetweenRepsRPKMfromBam <- function(file=getFullPath("/data/rpkmFro
   ggplot(melt.df[which(melt.df$variable %in% c("expr.rep1", "expr.rep2") & melt.df$measure == "RPKM"),], aes(x=variable,y=value,fill=region)) + 
     geom_bar(stat="identity") + 
     facet_grid(cell ~localization) + xlab("replicates") + ylab("count") +
-    ggtitle("RPKMfromBam\nnumber of expressed genes")
+    ggtitle("RPKMfromBam\nnumber of expressed genes")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/expr-cytNuc.png"), height=12,width=5)
   # localization vs. cell 
   # "RPKM_80norm","RPKM","reads","concBySpikeIn","spikeIn_norm
@@ -150,7 +151,9 @@ plotDifferenceBetweenRepsRPKMfromBam <- function(file=getFullPath("/data/rpkmFro
     facet_grid(localization~cell) + 
     scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","spikeIn_norm","concBySpikeIn"),
                      labels=c("reads","RPKM"  ,"RPKM_80","RPKM/spikeIn","Conc.")) + ylim(0,1) + 
-    thisTheme + ggtitle("RPKMfromBam\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80\nfrac.rep1=(rep1)/(rep1 + rep2)")
+    thisTheme + 
+    ggtitle("RPKMfromBam\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMspikeIn/Conc\nfrac.rep1=(rep1)/(rep1 + rep2)")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/readCount-cytNuc-region.png"), height=5,width=12)
   
   # combined
@@ -158,14 +161,18 @@ plotDifferenceBetweenRepsRPKMfromBam <- function(file=getFullPath("/data/rpkmFro
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","spikeIn_norm","concBySpikeIn"),
                      labels=c("reads","RPKM"  ,"RPKM_80","RPKM/spikeIn","Conc."))+ ylim(0,1) +
-    thisTheme2 + ggtitle("RPKMfromBam\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80\nfrac.rep1=(rep1)/(rep1 + rep2)")
+    thisTheme2 + 
+    ggtitle("RPKMfromBam\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMspikeIn/Conc\n frac.rep1=(rep1)/(rep1 + rep2)")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/readCount-cytNuc-all-combined.png"), height=5,width=10)
   
   ggplot(m.df, aes(x=measure,y=frac.rep1)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","spikeIn_norm","concBySpikeIn"),
                      labels=c("reads","RPKM"  ,"RPKM_80","RPKM/spikeIn","Conc."))+ ylim(0,1) +
-    thisTheme2 + ggtitle("RPKMfromBam\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80\nfrac.rep1=(rep1)/(rep1 + rep2)")
+    thisTheme2 + 
+    ggtitle("RPKMfromBam\nfraction of cytosol & nucleus\nreads/RPKM/RPKM80/RPKMspikeIn/Conc\nfrac.rep1=(rep1)/(rep1 + rep2)")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/readCount-cytNuc-all-combined-join.png"), height=5,width=10)
   
   
