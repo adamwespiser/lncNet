@@ -1150,25 +1150,25 @@ testK562 <- function(){
   k562 <- getTranscriptData(celltype="K562",rnaExtract=
                               "longPolyA")
   
-  as.data.frame(group_by(k562,cell,localization,replicate) %.%
-                  summarise(length(gene_id),
-                            mean(transTotalRPKM),
-                            sum(transcriptTotalReads),
-                            mean(transcriptTotalReads),
-                            sum(transcriptTotalReads > 0),
-                            sum(transcriptTotalReadsPerKb)))
+#   as.data.frame(group_by(k562,cell,localization,replicate) %.%
+#                   summarise(length(gene_id),
+#                             mean(transTotalRPKM),
+#                             sum(transcriptTotalReads),
+#                             mean(transcriptTotalReads),
+#                             sum(transcriptTotalReads > 0),
+#                             sum(transcriptTotalReadsPerKb)))
   
   cytRep1genes <- k562[which(k562$localization == "cytosol" & k562$replicate == 1),"gene_id"]
   k562.cytRep1Genes <- k562[which(k562$gene_id %in% cytRep1genes),]
   
-  as.data.frame(group_by(k562.cytRep1Genes,cell,localization,replicate) %.%
-                  summarise(length(gene_id),
-                            mean(transTotalRPKM),
-                            sum(transcriptTotalReads),
-                            mean(transcriptTotalReads),
-                            sum(transcriptTotalReads > 0),
-                            sum(transcriptTotalReadsPerKb),
-                            mean(transcriptTotalReadsPerKb/(sum(transcriptTotalReads)/10^6))))
+#   as.data.frame(group_by(k562.cytRep1Genes,cell,localization,replicate) %.%
+#                   summarise(length(gene_id),
+#                             mean(transTotalRPKM),
+#                             sum(transcriptTotalReads),
+#                             mean(transcriptTotalReads),
+#                             sum(transcriptTotalReads > 0),
+#                             sum(transcriptTotalReadsPerKb),
+#                             mean(transcriptTotalReadsPerKb/(sum(transcriptTotalReads)/10^6))))
   
   
   cytRep1genes <- k562[which(k562$localization == "cytosol" & k562$replicate == 1),]
