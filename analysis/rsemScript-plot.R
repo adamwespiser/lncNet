@@ -111,9 +111,9 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
   
   
   ggplot(melt.df[which(melt.df$variable %in% c("expr.rep1", "expr.rep2") & melt.df$measure == "TPM"),], aes(x=variable,y=value,fill=region)) + 
-    geom_bar(stat="identity") + + xlab("replicates") + ylab("count") +
-    facet_grid(cell ~localization) + 
-    ggtitle("RSEM\nnumber of expressed genes")
+    geom_bar(stat="identity") +  xlab("replicates") + ylab("count") +
+    facet_grid(cell ~localization) 
+    ggtitle("RSEM\nnumber of genes with mapped reads")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/expr-cytNuc.png"), height=12,width=5)
   # localization vs. cell 
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) +  
@@ -121,7 +121,7 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
     facet_grid(localization~cell) + 
     scale_x_discrete(limits=c("FPKM","TPM","FPKM_80norm"),
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
-    thisTheme + ggtitle("RSEM\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
+    thisTheme + ggtitle("RSEM\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\nfrac.rep1=(rep1)/(rep1 + rep2)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/readCount-cytNuc-region.png"), height=5,width=12)
   
   # combined
@@ -130,7 +130,7 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
     
     scale_x_discrete(limits=c("FPKM","TPM","FPKM_80norm"),
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
-    thisTheme2 + ggtitle("RSEM\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
+    thisTheme2 + ggtitle("RSEM\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\n frac.rep1=(rep1)/(rep1 + rep2)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/readCount-cytNuc-all-combined.png"), height=5,width=10)
   
   ggplot(m.df, aes(x=measure,y=frac.rep1)) + 
@@ -138,17 +138,17 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
     
     scale_x_discrete(limits=c("FPKM","TPM","FPKM_80norm"),
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
-    thisTheme2 + ggtitle("RSEM\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
+    thisTheme2 + ggtitle("RSEM\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\nfrac.rep1=(rep1)/(rep1 + rep2)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/readCount-cytNuc-all-combined-join.png"), height=5,width=10)
   
   
   #seperate by localization only
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
-    facet_grid(~localization) +
+    facet_grid(~localization) + 
     scale_x_discrete(limits=c("FPKM","TPM","FPKM_80norm"),
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
-    thisTheme2 + ggtitle("RSEM\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMnorm\nfrac.rep1=(rep1)/(rep1 + rep2)")
+    thisTheme2 + ggtitle("RSEM\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\n frac.rep1=(rep1)/(rep1 + rep2)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/readCount-cytNuc-combined.png"), height=6,width=10)
   
 }

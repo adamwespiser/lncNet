@@ -25,7 +25,7 @@ plotRepQC <- function(){
   comb$tag <- with(comb,paste(cell,experiment,sep="."))
 
   ggplot(comb, aes(x=tag, y=genesFound))+facet_grid(method~.) + geom_bar() +
-    ggtitle("Number of genes with read information")+
+    ggtitle("Number of genes with read information\nFacets are different methods")+
     xlab("cell.localization.replicate") +
     ylab("count of genes found") +
     theme_bw()+

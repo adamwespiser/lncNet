@@ -13,11 +13,17 @@ pc.v19.list <<- "/home/wespisea/data/gtf//gencode.v19.annotation.pc.geneList"
 
 convertTransToGeneGtf <- function(transFile,geneFile){
   tf <- tempfile()
-  system( paste("cat",transFile," | sed 's/[;\"]//g' |awk -F' ' '{print $10,$12,$14}' > ",tf))
+  system( paste("cat",transFile," | sed 's/[;\"]//g' |awk -F' ' '{print $10,$12,$14,$4,$5,$6}' > ",tf))
   trans.df <- read.csv(file=tf, sep=" ", stringsAsFactors=FALSE,header=FALSE)
   file.remove(tf)
-  colnames(trans.df) <- c("gene_id", "transcript_id", "RPKM")
-  gene.df <- as.data.frame(group_by(trans.df, gene_id) %.% summarise(RPKM = max(RPKM))) 
+  colnames(trans.df) <- c("gene_id", "transcript_id", "RPKM","startPos","stopPos","reads")
+  trans.df$length <- with(trans.df, stopPos-startPos)
+  trans.df$RPKM = as.numeric(trans.df$RPKM)
+  trans.df$RPKM_tieBreaker <- trans.df$RPKM + runif(seq_along(trans.df$RPKM))/(10^9)
+  gene.df <- as.data.frame(group_by(trans.df, gene_id) %.% filter(RPKM_tieBreaker == max(RPKM_tieBreaker))) 
+  gene.df$RPKM_tieBreaker <- NULL
+  gene.df$startPos <- NULL
+  gene.df$stopPos <- NULL
   exportAsTable(df=gene.df  ,file=geneFile)
 }
 
@@ -62,7 +68,7 @@ processGeneToTranscript <- function(force=FALSE){
   trans <- annot.df$rpkmFromBamFile
   for (i in seq_along(genes)){
     if((file.exists(trans[i]) && ! file.exists(genes[i])) || force == TRUE){
-      print(annot.df$bare[i])
+      print(paste(i,"/",length(genes),"file -> ",annot.df$bare[i]))
       convertTransToGeneGtf(transFile = trans[i], geneFile = genes[i])
     }
     
@@ -84,6 +90,20 @@ readInrpkmFromBamGtfParsed <- function(file="/home/wespisea/data/rpkmFromBam/wgE
   df[which(df$gene_id %in% pc), "region"] <- "mRNA"
   df$isSpikeIn <- 0
   df[grep(df$gene_id, pattern = "ERCC"), "isSpikeIn" ] <- 1
+  sumSpikeInRPKM <- sum(as.numeric(df[which(df$isSpikeIn == 1),"RPKM"]))/1000
+  df$spikeIn_norm <- as.numeric(df$RPKM)/sumSpikeInRPKM
+  df$readsPerKb <- with(df, (reads*10^3/length))
+  
+  spike.df <- getSpikeInDf()
+  
+  
+  df.spike <- df[grep(pattern="ERCC",df$gene_id),]
+  df.spike$readsPerKb <- df.spike$reads / (df.spike$length/1000)
+  #df.spike$RPKM <- df.spike$readsPerKb / millionsOfReads
+  spike <- merge(df.spike,spike.df, by="gene_id")
+  #s.lm <- glm(Pool14nmol.ul ~ reads + length, data=spike,family="poisson")
+  s.lm <- glm(Pool14nmol.ul ~ readsPerKb + 0, data=spike)
+  df$concBySpikeIn <- predict(s.lm, newdata=df)
   
   df
 }
@@ -141,7 +161,7 @@ getDataTotalReadsBtwnReps_rpkmFromBam <- function(){
   
   exportAsTable(file=getFullPath("/data/rpkmFromBamDataAllCells.tab"), df=df.together)
   df.together$gene_type <- df.together$region
-  df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "RPKM_80norm","RPKM")]
+  df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "RPKM_80norm","RPKM","reads","concBySpikeIn","spikeIn_norm")]
   
   df.rep.1 <- subset(df.abbrev, replicate == 1)
   df.rep.2 <- subset(df.abbrev, replicate == 2)

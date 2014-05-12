@@ -166,8 +166,7 @@ getDataTotalReadsBtwnReps_RSEM <- function(){
   #df.cytNuc[which(df.cytNuc$gene_id %in% pc),"region"] <- "mRNA"
   #df.cytNuc[which(df.cytNuc$gene_id %in% lnc),"region"] <- "lncRNA"
   
-  
-  
+
   exportAsTable(file=getFullPath("/data/rsemCapData-lpa-proc.tab"), df=df.cytNuc)
   
 }

@@ -1170,5 +1170,52 @@ as.data.frame(group_by(k562.cytRep1Genes,cell,localization,replicate) %.%
                           sum(transcriptTotalReadsPerKb),
                           mean(transcriptTotalReadsPerKb/(sum(transcriptTotalReads)/10^6))))
 
+
+cytRep1genes <- k562[which(k562$localization == "cytosol" & k562$replicate == 1),]
+cytRep2genes <- k562[which(k562$localization == "cytosol" & k562$replicate == 2),]
+
+cytRep1genes$RPKM80_normAllGenes <- apply80norm(cytRep1genes$transTotalRPKM)
+cytRep2genes$RPKM80_normAllGenes <- apply80norm(cytRep2genes$transTotalRPKM)
+
+cyt <- merge(cytRep1genes,cytRep2genes,suffixes=c(".rep1",".rep2"),
+             by=c("gene_id","localization","cell","rnaExtract"))
+
+
+cyt<- as.data.frame(group_by(cyt, cell, localization,rnaExtract) %.% 
+                               mutate(RPKM_80norm.rep1 = apply80norm(transTotalRPKM.rep1 ) * 1000000,
+                                      RPKM_trimSum.rep1 = trimmedMean80_sum(transTotalRPKM.rep1 ),
+                                      RPKM_80norm.rep2 = apply80norm(transTotalRPKM.rep2 ) * 1000000,
+                                      RPKM_trimSum.rep2 = trimmedMean80_sum(transTotalRPKM.rep2 )))
+
+cyt.abbrev <- cyt[ c("gene_id","localization","cell","rnaExtract","transTotalRPKM.rep1", "transTotalRPKM.rep1","RPKM_80norm.rep1","RPKM_80norm.rep2","RPKM_trimSum.rep1","RPKM_trimSum.rep2","transcriptTotalReadsPerKb.rep1","transcriptTotalReadsPerKb.rep2","RPKM80_normAllGenes.rep1","RPKM80_normAllGenes.rep2")]
+ggplot(cyt,aes(x=log10(transcriptTotalReadsPerKb.rep1),y=log10(transcriptTotalReadsPerKb.rep2))) + geom_point()+
+  geom_abline(slope=1,intercept=0)+ xlab("rep1:reads mapped to gene") + ylab("rep2:reads mappped to gene")+
+  ggtitle("K562 cytsol\nnormalization of genes in rep1/rep2")
+ggsave(file=getFullPath("plots/rnaExpr/mappedReads/flux-k562-caseStudy/reads-normByallGenes.pdf"),height=7,width=7)
+
+ggplot(cyt,aes(x=log10(transTotalRPKM.rep1),y=log10(transTotalRPKM.rep2))) + geom_point()+
+  geom_abline(slope=1,intercept=0)+xlab("rep1:RPKM") + ylab("rep2:RPKM") + 
+  ggtitle("K562 cytsol\ngenes in rep1/rep2\nRPKM calculated on all genes in replicate")
+ggsave(file=getFullPath("plots/rnaExpr/mappedReads/flux-k562-caseStudy/rpkm-normOnAllGenes.pdf"),height=7,width=7)
+
+ggplot(cyt,aes(x=log10(RPKM_80norm.rep1),y=log10(RPKM_80norm.rep2))) + geom_point()+
+  geom_abline(slope=1,intercept=0)+xlab("rep1:trimmed mean") + ylab("rep2:trimmed mean") + 
+  ggtitle("K562 cytsol\ntrimmed mean\nnorm calcuclated on all genes in both rep1 & rep2")
+ggsave(file=getFullPath("plots/rnaExpr/mappedReads/flux-k562-caseStudy/rpkm80-normOnSelectedGenes.pdf"),height=7,width=7)
+
+ggplot(cyt,aes(x=log10(RPKM80_normAllGenes.rep1),y=log10(RPKM80_normAllGenes.rep2))) + geom_point()+
+  geom_abline(slope=1,intercept=0)+xlab("rep1:trimmed mean") + ylab("rep2:trimmed mean") + 
+  ggtitle("K562 cytsol rep1/rep2\ntrimeed mean\nnorm calcuclated on all genes in rep1 | rep2")
+ggsave(file=getFullPath("plots/rnaExpr/mappedReads/flux-k562-caseStudy/rpkm80-normOnAllGenes.pdf"),height=7,width=7)
+
+
+cytAll <- merge(cytRep1genes,cytRep2genes,suffixes=c(".rep1",".rep2"),
+             by=c("gene_id","localization","cell","rnaExtract"),
+              all=TRUE)
+
+cytAll<- as.data.frame(group_by(cytAll, cell, localization,rnaExtract,replicate) %.% 
+                               mutate(RPKM_80norm = apply80norm(transTotalRPKM) * 1000000,
+                                      RPKM_trimSum = trimmedMean80_sum(transTotalRPKM)))
+
 }
 
