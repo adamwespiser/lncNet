@@ -271,7 +271,59 @@ plotReadDistributionRPKMfromBAM <- function(){
 }
 
 
+plotCytNucFrac_RPKMfromBam <- function(){
+  
+  df.lpa.ratio <- readInTable(file=getFullPath("/data/rpkmFromBamCapData-lpa-cytFrac.tab"))
+  df.lpa.ratio.rpkm <- df.lpa.ratio[which(df.lpa.ratio$variable =="RPKM"),]
+  #df.cytNuc.rpkm[which(df.cytNuc.rpkm$gene_id %in% pc),"region"] <- "mRNA"
+  #df.cytNuc.rpkm[which(df.cytNuc.rpkm$gene_id %in% lnc),"region"] <- "lncRNA"
+  
+  df.lpa.ratio.rpkm80 <- df.lpa.ratio[which(df.lpa.ratio$variable =="RPKM_80norm"),]
+  df.lpa.ratio.concBySpikeIn <- df.lpa.ratio[which(df.lpa.ratio$variable =="concBySpikeIn"),]
+  df.lpa.ratio.spikeIn_norm <- df.lpa.ratio[which(df.lpa.ratio$variable =="spikeIn_norm"),]
 
+  
+   #RPKM
+  ggplot(df.lpa.ratio.rpkm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM: cytPseudo/(nucPseudo + cytPseudo)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/cytFrac/rpkmPseudo-cells.png"), height=12,width=5)
+  
+  ggplot(df.lpa.ratio.rpkm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/cytFrac/rpkm-cells.png"), height=12,width=5)
+  
+  #RPKM 80
+  ggplot(df.lpa.ratio.rpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM80: cytPseudo/(nucPseudo + cytPseudo)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/cytFrac/rpkm80Pseudo-cells.png"), height=12,width=5)
+  
+  ggplot(df.lpa.ratio.rpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM80: cyt/(nuc + cyt)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/cytFrac/rpkm80-cells.png"), height=12,width=5)
+  
+  #Conc by glm
+  ggplot(df.lpa.ratio.concBySpikeIn, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nconc by glm: cytPseudo/(nucPseudo + cytPseudo)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/cytFrac/concPseudo-cells.png"), height=12,width=5)
+  
+  ggplot(df.lpa.ratio.concBySpikeIn, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nconc by glm: cyt/(nuc + cyt)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBam/cytFrac/conc-cells.png"), height=12,width=5)
+  
+  
+}
 
 
 

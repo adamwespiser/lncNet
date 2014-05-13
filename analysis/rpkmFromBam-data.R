@@ -230,3 +230,40 @@ getDataTotalReadsBtwnReps_rpkmFromBam <- function(){
   
 }
 
+applyPseudoCount <- function(vec){
+  vPos <- vec[which(vec>0)]
+  
+}
+
+
+
+getCytNucRatio_rpkmBam <- function(){
+
+df.cytNuc <- readInTable(getFullPath("/data/rpkmFromBamCapData-lpa-proc.tab"))
+
+# df.cytNuc <- as.data.frame(group_by(df.cytNuc, cell, localization,rnaExtract,replicate) %.% 
+#                                mutate(RPKM_pseudo = apply80norm(transTotalRPKM) * 1000000,
+#                                       RPKM_trimSum = trimmedMean80_sum(transTotalRPKM)))
+
+
+df.lpa.cyt <- as.data.frame(group_by(df.cytNuc, cell) %.%
+                                 filter(rnaExtract =="longPolyA") %.%
+                                 filter(localization == "cytosol"))
+
+df.lpa.nuc <- as.data.frame(group_by(df.cytNuc, cell) %.%
+                                 filter(rnaExtract =="longPolyA") %.%
+                                 filter(localization == "nucleus"))
+
+df.lpa.ratio <- merge(df.lpa.nuc,df.lpa.cyt,by=c("gene_id","cell","variable"),suffixes=c(".nuc",".cyt"))
+df.lpa.ratio$cytFracPseudo <- with(df.lpa.ratio, (value.rep1.pseudo.cyt+value.rep2.pseudo.cyt)/(value.rep1.pseudo.cyt + value.rep2.pseudo.cyt + value.rep1.pseudo.nuc + value.rep2.pseudo.nuc))
+df.lpa.ratio$cytFrac <- with(df.lpa.ratio, (value.ave.cyt)/(value.ave.cyt + value.ave.nuc))
+exportAsTable(file=getFullPath("/data/rpkmFromBamCapData-lpa-cytFrac.tab"), df=df.lpa.ratio)
+}
+
+
+
+
+
+
+
+
