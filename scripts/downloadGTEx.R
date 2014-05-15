@@ -12,7 +12,16 @@ readInGTExAllMeta <- function(){
   df$downloadCmd <- paste0("/home/wespisea/bin/sratoolkit.2.3.5-2-ubuntu64/bin/fastq-dump -O /data/wespisea/gtex/fastq/ --split-files -gzip ",df$run_accession)
   df
 }
-
+genWebsiteKey <- function(SRA="SRR613771"){
+  system(paste("cd /data/wespisea/gtex/sraDB; ~/bin/sratoolkit.2.3.5-2-ubuntu64/bin/test-sra",SRA,"2>&1 > ~/sandbox/sratoolTest &"))
+  Sys.sleep(30)
+}
+getWebsiteKey <- function(){
+  lines <- readLines(con="~/sandbox/sratoolTest")
+  lines <- lines[grep(x=lines, "Remote http")]
+  lines <- lines[grep(x=lines, "http://gap-upload.ncbi.nlm.nih.gov/")]
+  as.character(unlist(strsplit(x=as.character(unlist(strsplit(x=lines[1],split ="gap-upload.ncbi.nlm.nih.gov/")))[-1],split="/")[1]))[1]
+}
 
 downloadFileMissing_url_getkey <- function(){
   df <- readInGTExAllMeta()
@@ -48,6 +57,7 @@ downloadFileMissing_url_getkey <- function(){
 }
 
 SRAstatusGood <- function(sraDir="/data/wespisea/gtex/sra/"){
+ 
   sraDir <- "/data/wespisea/gtex/sra/"
   # sraDir <- "/home/wespisea/sandbox/testSRA"
   p <- pipe(paste("ls",sraDir))
@@ -55,18 +65,26 @@ SRAstatusGood <- function(sraDir="/data/wespisea/gtex/sra/"){
   close(p)
   sizeDistro <- sapply(files, function(x)file.info(x)$size)
   if (sum(sizeDistro == 0) > 10){
-    FALSE
+    return(FALSE)
   }
   TRUE
-} 
+}
 
 runDownloadMoniter <- function(){
-  
+print("entering download moniter")  
+  i <- 1
   while(TRUE){
+	print(paste("entering round:",i))
+    status <- SRAstatusGood()
+	print(paste("status is Good(t/f):",status))
     if (FALSE == SRAstatusGood()){
+	  print("download has failed, restarting")
       cmds <- downloadFileMissing_url_getkey()
+	  print("got new address, and commands")
       system(cmds[1])
+	  print("cleared size 0 files")
       Sys.sleep(10)
+	  print("entering new download commands to screen sessions")
       system(cmds[2])
       system(cmds[3])
       Sys.sleep(10)
