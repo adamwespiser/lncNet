@@ -1,5 +1,7 @@
 #! /usr/bin/Rscript --vanilla
-
+## USAGE:
+#  run this program to ensure the GTEx download is continuously going
+# screen -d -m sh -c "./downloadGTEx.R"
 
 readInGTExAllMeta <- function(){
   df <- read.csv(file = "/home/wespisea/work/research/researchProjects/encode/encode-manager/data/GTExSraDB-metainfo.tab",stringsAsFactors=FALSE,sep="\t")
@@ -17,6 +19,7 @@ downloadFileMissing_url_getkey <- function(){
   gtexDir <- "/data/wespisea/gtex/fastq/"
   df$fastq1 <- paste0(gtexDir, df$run_accession, "_1.fastq.gz")
   df$fastq2 <- paste0(gtexDir, df$run_accession, "_2.fastq.gz")
+  df$sraFile <- paste0("/data/wespisea/gtex/sra/",df$run_accession,".sra")
   df$haveFiles <- file.exists(df$fastq1)
   df.need <- df[which(df$haveFiles == FALSE),]
   
@@ -44,6 +47,18 @@ downloadFileMissing_url_getkey <- function(){
   
 }
 
+SRAstatusGood <- function(sraDir="/data/wespisea/gtex/sra/"){
+  sraDir <- "/data/wespisea/gtex/sra/"
+  # sraDir <- "/home/wespisea/sandbox/testSRA"
+  p <- pipe(paste("ls",sraDir))
+  files <- file.path(sraDir,readLines(p))
+  close(p)
+  sizeDistro <- sapply(files, function(x)file.info(x)$size)
+  if (sum(sizeDistro == 0) > 10){
+    FALSE
+  }
+  TRUE
+} 
 
 runDownloadMoniter <- function(){
   
@@ -56,6 +71,13 @@ runDownloadMoniter <- function(){
       system(cmds[3])
       Sys.sleep(10)
     } 
-    Sys.sleep(3600)
+    Sys.sleep(600)
   }
 } 
+
+
+runDownloadMoniter()
+
+
+
+
