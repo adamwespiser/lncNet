@@ -412,12 +412,6 @@ plotBetweenReplicatesSepByLocal <- function(file=getFullPath("/data/fluxCapData-
 }
 
 
-
-
-
-
-
-
 compareRsemFlux <- function(){
   
   df.cytNuc.fpkm$prog <- "RSEM"
