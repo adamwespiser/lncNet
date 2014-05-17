@@ -34,6 +34,7 @@ processCellsMaxTransExpr <- function(){
   sapply(seq_along(transFullRPKM), function(x)convertTransToTransFull(transFile=trans[x],geneFile=transFullRPKM[x]))
   df.together <- data.frame()
   for ( cell in unique(annot.df$cell)){
+    print(cell)
     a.cell <- annot.df[which(annot.df$cell == cell),]
     a.cell.cyt1 <- read.csv(file=a.cell[which(a.cell$rep == 1 & a.cell$localization == "cytosol"),"transFullRPKM"],sep="\t",stringsAsFactors=FALSE)
     a.cell.cyt1$loc <- "cytosol"
@@ -67,7 +68,7 @@ processCellsMaxTransExpr <- function(){
 }
 
 getDataTotalReadsBtwnReps_rpkmFromBamTopTrans <- function(){
-  df.together <- readInTable(getFullPath("data/rpkmFromBam-TopTransCellType.tab"))
+  df.together <- read.csv(file=getFullPath("data/rpkmFromBam-TopTransCellType.tab"),sep="\t")
   pc <- readLines(pc.v19.list)
   lnc <- readLines(lnc.v19.list)
   df.together$region <- "other"
@@ -156,7 +157,7 @@ getDataTotalReadsBtwnReps_rpkmFromBamTopTrans <- function(){
   df.nuc$value.ave <- (df.nuc$value.rep1 + df.nuc$value.rep2)/2
   
   
-  df.cytNuc <- rbind(df.cyt,df.nuc)
+  #df.cytNuc <- rbind(df.cyt,df.nuc)
   #df.cytNuc[which(df.cytNuc$gene_id %in% pc),"region"] <- "mRNA"
   #df.cytNuc[which(df.cytNuc$gene_id %in% lnc),"region"] <- "lncRNA"
   
