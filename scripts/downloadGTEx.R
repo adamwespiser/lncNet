@@ -71,20 +71,20 @@ SRAstatusGood <- function(sraDir="/data/wespisea/gtex/sra/"){
 }
 
 runDownloadMoniter <- function(){
-print("entering download moniter")  
+  print("entering download moniter")  
   i <- 1
   while(TRUE){
-	print(paste("entering round:",i))
+    print(paste("entering round:",i))
     status <- SRAstatusGood()
-	print(paste("status is Good(t/f):",status))
+    print(paste("status is Good(t/f):",status))
     if (FALSE == SRAstatusGood()){
-	  print("download has failed, restarting")
+      print("download has failed, restarting")
       cmds <- downloadFileMissing_url_getkey()
-	  print("got new address, and commands")
+      print("got new address, and commands")
       system(cmds[1])
-	  print("cleared size 0 files")
+      print("cleared size 0 files")
       Sys.sleep(10)
-	  print("entering new download commands to screen sessions")
+      print("entering new download commands to screen sessions")
       system(cmds[2])
       system(cmds[3])
       Sys.sleep(10)

@@ -73,7 +73,7 @@ getDataTotalReadsBtwnReps_rpkmFromBamTopTrans <- function(){
   lnc <- readLines(lnc.v19.list)
   df.together$region <- "other"
   df.together[which(df.together$gene_id %in% lnc),"region"] <- "lnc"
-  df.together[which(df.together$gene_id %in% pc),"region"] <- "pc"
+  df.together[which(df.together$gene_id %in% pc),"region"] <- "mRNA"
   df.together$gene_type <- df.together$region
   df.together$rnaExtract = "longPolyA"
   df.together$localization <- df.together$loc
@@ -171,7 +171,7 @@ getDataTotalReadsBtwnReps_rpkmFromBamTopTrans <- function(){
 
 plotRatiosTopTrans <- function(){
   
-  df.cytNuc <- readInTable(file=getFullPath("/data/rpkmFromBamCapDataTopTrans-lpa-proc.tab"))
+  df.cytNuc <- read.csv(sep="\t",file=getFullPath("/data/rpkmFromBamCapDataTopTrans-lpa-proc.tab"))
   df.cytNuc$cytFracPseudo <- with(df.cytNuc, (value.rep1.pseudo.cyt+value.rep2.pseudo.cyt)/(value.rep1.pseudo.cyt + value.rep2.pseudo.cyt + value.rep1.pseudo.nuc + value.rep2.pseudo.nuc))
   df.cytNuc$cytFrac <- with(df.cytNuc, (value.ave.cyt)/(value.ave.cyt + value.ave.nuc))
   
@@ -184,25 +184,25 @@ plotRatiosTopTrans <- function(){
   ggplot(df.lpa.ratio.rpkm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM: cytPseudo/(nucPseudo + cytPseudo)")
+    ggtitle("RPKMfromBAM Top Trans\nFraction of Cytosolic RNA-seq expr\nRPKM: cytPseudo/(nucPseudo + cytPseudo)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkmPseudo-cells.png"), height=12,width=5)
   
   ggplot(df.lpa.ratio.rpkm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)")
+    ggtitle("RPKMfromBAM Top Trans\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkm-cells.png"), height=12,width=5)
   
   ggplot(df.lpa.ratio.rpkm, aes(x=cytFracPseudo,fill=factor(region.cyt)))+
     geom_bar(position="dodge") + theme_bw() + thisTheme + 
     facet_grid(cell~.)+
-    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM: cytPseudo/(nucPseudo + cytPseudo)")
+    ggtitle("RPKMfromBAM Top Trans\nFraction of Cytosolic RNA-seq expr\nRPKM: cytPseudo/(nucPseudo + cytPseudo)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkmPseudo-bars-cells.png"), height=12,width=5)
   
   ggplot(df.lpa.ratio.rpkm, aes(x=cytFrac,,fill=factor(region.cyt)))+
     geom_bar(position="dodge") + theme_bw() + thisTheme + 
     facet_grid(cell~.)+
-    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)")
+    ggtitle("RPKMfromBAM Top Trans\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkm-bars-cells.png"), height=12,width=5)
   
   
@@ -210,13 +210,13 @@ plotRatiosTopTrans <- function(){
   ggplot(df.lpa.ratio.rpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM80: cytPseudo/(nucPseudo + cytPseudo)")
+    ggtitle("RPKMfromBAM Top Trans\nFraction of Cytosolic RNA-seq expr\nRPKM80: cytPseudo/(nucPseudo + cytPseudo)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkm80Pseudo-cells.png"), height=12,width=5)
   
   ggplot(df.lpa.ratio.rpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM80: cyt/(nuc + cyt)")
+    ggtitle("RPKMfromBAM Top Trans\nFraction of Cytosolic RNA-seq expr\nRPKM80: cyt/(nuc + cyt)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkm80-cells.png"), height=12,width=5)
   
   
@@ -246,7 +246,7 @@ getDataExprBoth <- function(){
   df.flux.ratio.rpkm$cellGene <- with(df.flux.ratio.rpkm,paste(gene_id,cell))
   
   
-  df.cytNuc <- readInTable(file=getFullPath("/data/rpkmFromBamCapDataTopTrans-lpa-proc.tab"))
+  df.cytNuc <- read.csv(sep="\t",file=getFullPath("/data/rpkmFromBamCapDataTopTrans-lpa-proc.tab"))
   df.cytNuc$cytFracPseudo <- with(df.cytNuc, (value.rep1.pseudo.cyt+value.rep2.pseudo.cyt)/(value.rep1.pseudo.cyt + value.rep2.pseudo.cyt + value.rep1.pseudo.nuc + value.rep2.pseudo.nuc))
   df.cytNuc$cytFrac <- with(df.cytNuc, (value.ave.cyt)/(value.ave.cyt + value.ave.nuc))
   df.cytNuc.pos <- df.cytNuc[which(df.cytNuc$value.ave.cyt != 0 & df.cytNuc$value.ave.nuc != 0),]
@@ -282,6 +282,100 @@ getDataExprBoth <- function(){
     facet_grid(cell~region.cyt)+
     ggtitle("Flux\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkmFlux-cells.png"), height=12,width=5)
+  
+  
+  
+  fluxBam <- merge(df.flux.ratio.rpkm,df.lpa.ratio.rpkm,by="cellGene",suffixes=c(".flux",".rfb"))
+  ggplot(fluxBam, aes(x=log10(2*value.ave.nuc.flux),y=log10(2*value.ave.nuc.rfb)))+ geom_point(alpha=I(0.2)) +
+    theme_bw() + thisTheme +
+    facet_grid(cell.flux~.) +
+    geom_abline(intercept=0,slope=1) + 
+    xlab("Flux Nucleus Sum RPKM") + ylab("RPKMFromBam  Nucleus Sum RPKM")+
+    ggtitle("Comparison of Flux and RPKMFromBam\nSum RPKM in Nucleus")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam-nuc-cells.png"), height=12,width=5)
+
+  ggplot(fluxBam, aes(x=log10(value.ave.cyt.flux),y=log10(value.ave.cyt.rfb)))+ geom_point(alpha=I(0.2)) +
+    theme_bw() + thisTheme +
+    facet_grid(cell.flux~.) +
+    geom_abline(intercept=0,slope=1)+ 
+    xlab("Flux Cytosol Sum RPKM") + ylab("RPKMFromBam Cytosol Sum RPKM")+
+    ggtitle("Comparison of Flux and RPKMFromBam\nSum RPKM in Cytosol")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam-cyt-cells.png"), height=12,width=5)
+  
+  ggplot(fluxBam, aes(x=cytFrac.flux,y=cytFrac.rfb,color=region.nuc.flux))+ geom_point(alpha=I(0.6)) +
+    theme_bw() + thisTheme +
+    facet_grid(cell.flux~.) +
+    geom_abline(intercept=0,slope=1) + 
+    xlab("Flux Nucleus cyt frac.") + ylab("RPKMFromBam  Nucleus cyt frac")+
+    ggtitle("Comparison of Flux and RPKMFromBam\ncyt fraction = cyt/(cyt + nuc)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam-cytFrac-cells.png"), height=12,width=5)
+  
+  #RPKM80
+  df.flux.ratio.rpkm80 <- df.flux.ratio.pos[which(df.flux.ratio.pos$variable =="RPKM_80norm"),]
+  df.flux.ratio.rpkm80$cellGene <- with(df.flux.ratio.rpkm80,paste(gene_id,cell))
+  
+  
+  
+  df.lpa.ratio.rpkm80 <- df.cytNuc.pos[which(df.cytNuc.pos$variable =="RPKM_80norm"),]
+  df.lpa.ratio.rpkm80$cellGene <- with(df.lpa.ratio.rpkm80,paste(gene_id,cell))
+  bam.cells <- unique(df.lpa.ratio.rpkm$cell)
+  
+  df.flux.ratio.rpkm80 <- df.flux.ratio.rpkm80[which(df.flux.ratio.rpkm80$cell %in% unique(df.lpa.ratio.rpkm$cell)),]
+  
+  df.lpa.ratio.rpkm80 <- df.lpa.ratio.rpkm80[which(df.lpa.ratio.rpkm80$cellGene %in%  df.flux.ratio.rpkm$cellGene),]
+  
+  ggplot(df.lpa.ratio.rpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM same trans in cell type\nFraction of Cytosolic RNA-seq expr\nRPKM80: cytPseudo/(nucPseudo + cytPseudo)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkm80Pseudo-fluxOnly-cells.png"), height=12,width=5)
+  
+  ggplot(df.flux.ratio.rpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("Flux\nFraction of Cytosolic RNA-seq expr\nRPKM80: cytPseudo/(nucPseudo + cytPseudo)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkm80PseudoFlux-cells.png"), height=12,width=5)
+  
+  
+  ggplot(df.lpa.ratio.rpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM\nFraction of Cytosolic RNA-seq expr\nRPKM80: cyt/(nuc + cyt)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkm80-fluxOnly-cells.png"), height=12,width=5)
+  
+  ggplot(df.flux.ratio.rpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("Flux\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/rpkm80Flux-cells.png"), height=12,width=5)
+  
+  
+  
+  fluxBam80 <- merge(df.flux.ratio.rpkm80,df.lpa.ratio.rpkm80,by="cellGene",suffixes=c(".flux",".rfb"))
+  ggplot(fluxBam80, aes(x=log10(2*value.ave.nuc.flux),y=log10(2*value.ave.nuc.rfb)))+ geom_point(alpha=I(0.2)) +
+    theme_bw() + thisTheme +
+    facet_grid(cell.flux~.) +
+    geom_abline(intercept=0,slope=1) + 
+    xlab("Flux Nucleus Sum RPKM80") + ylab("RPKMFromBam  Nucleus Sum RPKM80")+
+    ggtitle("Comparison of Flux and RPKMFromBam\nSum RPKM in Nucleus")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam80-nuc-cells.png"), height=12,width=5)
+  
+  ggplot(fluxBam, aes(x=log10(value.ave.cyt.flux),y=log10(value.ave.cyt.rfb)))+ geom_point(alpha=I(0.2)) +
+    theme_bw() + thisTheme +
+    facet_grid(cell.flux~.) +
+    geom_abline(intercept=0,slope=1)+ 
+    xlab("Flux Cytosol Sum RPKM80") + ylab("RPKMFromBam Cytosol Sum RPKM80")+
+    ggtitle("Comparison of Flux and RPKMFromBam\nSum RPKM in Cytosol")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam80-cyt-cells.png"), height=12,width=5)
+  
+  ggplot(fluxBam, aes(x=cytFrac.flux,y=cytFrac.rfb,color=region.nuc.flux))+ geom_point(alpha=I(0.6)) +
+    theme_bw() + thisTheme +
+    facet_grid(cell.flux~.) +
+    geom_abline(intercept=0,slope=1) + 
+    xlab("Flux Nucleus cyt frac. RPKM80") + ylab("RPKMFromBam  Nucleus cyt frac RPKM80")+
+    ggtitle("Comparison of Flux and RPKMFromBam\ncyt fraction = cyt/(cyt + nuc)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam80-cytFrac-cells.png"), height=12,width=5)
+  
   
   
 }
