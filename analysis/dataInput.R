@@ -1187,6 +1187,14 @@ generateStarBedops<- function(){
   scpFile(file.local="~/sandbox/rpkm-tool", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool -c 5 -m 8192 -W 600 -Q short -t rpkm
   
+  df$overlapSize <- floor(as.numeric(gsub(x=gsub(x=df$readType,pattern="2x",replacement=""),pattern="D",replacement=""))/2)
+  cmd9 <- "java -jar -Xmx24g /home/aw30w/bin/bam2rpkm-0.06/bam2rpkm-0.06.jar -f /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn.gtf -i test.star_sort.bam --overlap xxOOxx -r exon -o test.transByExon.gtf"
+  o9 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd9,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
+  o9 <- as.character(unlist(sapply(seq_along(o9), function(i)gsub(x=o9[i],pattern="xxOOxx", replacement=df$overlapSize[i]))))
+  
+  write(o9, file="~/sandbox/rpkm-tool-exon")
+  scpFile(file.local="~/sandbox/rpkm-tool-exon", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool-exon -c 5 -m 8192 -W 600 -Q short -t rpkm
   
   
   cmd5.1 <- "python reads-in-features.py  --sam=test.star_sort.sam --gff=/project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.pc.gtf  --label=mRNA --stranded=TRUE --outprefix=COUNT_FILE.mRNA."

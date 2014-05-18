@@ -15,6 +15,63 @@ convertTransToTransFull <- function(transFile,geneFile){
   exportAsTable(df=trans.df  ,file=geneFile)
 }
 
+convertTransToGeneGtfReads <- function(transFile,geneFile){
+  tf <- tempfile()
+  system( paste("cat",transFile," | sed 's/[;\"]//g' |awk -F' ' '{print $10,$12,$14,$4,$5,$6}' > ",tf))
+  trans.df <- read.csv(file=tf, sep=" ", stringsAsFactors=FALSE,header=FALSE)
+  file.remove(tf)
+  colnames(trans.df) <- c("gene_id", "transcript_id", "RPKM","startPos","stopPos","reads")
+  trans.df$RPKM <- NULL
+  trans.df$startPos <- NULL
+  trans.df$stopPos <- NULL
+  exportAsTable(df=trans.df  ,file=geneFile)
+}
+
+processCellsMaxTransExprReads <- function(){
+  annot.df <- getRpkmFromBamDataForOneCell()
+  annot.df <- annot.df[which(annot.df$rnaExtract == "longPolyA"),]
+  annot.df <- annot.df[-which(annot.df$cell == "H1-hESC"),]
+  genes <- annot.df$rfbGene
+  trans <- annot.df$rpkmFromBamFile
+  annot.df$rep <- ifelse(annot.df$replicate >2,annot.df$replicate -2,annot.df$replicate )
+  annot.df$transFullReads<- gsub(x=annot.df$rfbGene,pattern="genes",replacement="transFullReads")
+  transFullReads <- annot.df$transFullReads 
+  sapply(seq_along(transFullReads), function(x)convertTransToGeneGtfReads(transFile=trans[x],geneFile=transFullReads[x]))
+  df.together <- data.frame()
+  for ( cell in unique(annot.df$cell)){
+    print(cell)
+    a.cell <- annot.df[which(annot.df$cell == cell),]
+    a.cell.cyt1 <- read.csv(file=a.cell[which(a.cell$rep == 1 & a.cell$localization == "cytosol"),"transFullReads"],sep="\t",stringsAsFactors=FALSE)
+    a.cell.cyt1$loc <- "cytosol"
+    a.cell.cyt1$rep <- 1
+    a.cell.nuc1 <- read.csv(file=a.cell[which(a.cell$rep == 1 & a.cell$localization == "nucleus"),"transFullReads"],sep="\t",stringsAsFactors=FALSE)
+    a.cell.nuc1$loc <- "nucleus"
+    a.cell.nuc1$rep <- 1
+    a.cell.cyt2 <- read.csv(file=a.cell[which(a.cell$rep == 2 & a.cell$localization == "cytosol"),"transFullReads"],sep="\t",stringsAsFactors=FALSE)
+    a.cell.cyt2$loc <- "cytosol"
+    a.cell.cyt2$rep <- 2
+    a.cell.nuc2 <- read.csv(file=a.cell[which(a.cell$rep == 2 & a.cell$localization == "nucleus"),"transFullReads"],sep="\t",stringsAsFactors=FALSE)
+    a.cell.nuc2$loc <- "nucleus"
+    a.cell.nuc2$rep <- 2
+    
+    comb <- rbind(a.cell.cyt1,a.cell.cyt2,a.cell.nuc1,a.cell.nuc2)
+    transExpr <- as.data.frame(group_by(comb,gene_id,transcript_id) %.% summarise(sum(reads)))
+    colnames(transExpr) <- c("gene_id","transcript_id","Readsum")
+    transExpr$Reads_tieBreaker <- transExpr$Readsum + runif(seq_along(transExpr$Readsum))/(10^9)
+    gene.df <- as.data.frame(group_by(transExpr, gene_id) %.% filter(Reads_tieBreaker == max(Reads_tieBreaker))) 
+    cellTranscripts <- gene.df$transcript_id
+    cTrans <- comb[which(comb$transcript_id %in% cellTranscripts),]
+    cTrans$cell <- cell                       
+    if (i == 1){
+      df.together <- cTrans
+      
+    } else{
+      df.together <- rbind(df.together,cTrans)
+    }
+  }
+  exportAsTable(file=getFullPath("data/rpkmFromBam-TopTransCellType-Reads.tab"),df=df.together)
+}
+
 
 doit <- function(){
 processCellsMaxTransExpr()
@@ -167,7 +224,93 @@ getDataTotalReadsBtwnReps_rpkmFromBamTopTrans <- function(){
   exportAsTable(file=getFullPath("/data/rpkmFromBamCapDataTopTrans-lpa-proc.tab"), df=df.cytNuc)
   
 }
-
+getDataTotalReadsBtwnReps_readsFromBamTopTrans <- function(){
+  df.together <- read.csv(file=getFullPath("data/rpkmFromBam-TopTransCellType-Reads.tab"),sep="\t")
+  pc <- readLines(pc.v19.list)
+  lnc <- readLines(lnc.v19.list)
+  df.together$region <- "other"
+  df.together[which(df.together$gene_id %in% lnc),"region"] <- "lnc"
+  df.together[which(df.together$gene_id %in% pc),"region"] <- "mRNA"
+  df.together$gene_type <- df.together$region
+  df.together$rnaExtract = "longPolyA"
+  df.together$localization <- df.together$loc
+  df.together$replicate <- df.together$rep
+  df.together$reads <- as.numeric(df.together$reads)
+  df.together$isSpikeIn <- 0
+  df.together[grep(pattern="ERCC",df.together$gene_id),"isSpikeIn"] <- 1
+    
+  #  group_by(df.together, cell, localization,rnaExtract,replicate) %.% summarise(mean(RPKM_80norm/transTotalRPKM, na.rm=TRUE))
+  
+  exportAsTable(file=getFullPath("/data/rpkmFromBamTopTransAllCells-READS.tab"), df=df.together)
+  df.together$gene_type <- df.together$region
+  df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "reads")]
+  
+  df.rep.1 <- subset(df.abbrev, replicate == 1)
+  df.rep.2 <- subset(df.abbrev, replicate == 2)
+  
+  df.cyt.rep1 <- subset(df.rep.1, localization == "cytosol")
+  df.cyt.rep2 <- subset(df.rep.2, localization == "cytosol")
+  idVars <-  c("gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn","replicate","region")
+  idVarsNorep <- c("variable","gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn","region")
+  df.cyt.rep1.melt <- melt(df.cyt.rep1, id.vars = idVars)
+  df.cyt.rep2.melt <- melt(df.cyt.rep2, id.vars = idVars)
+  df.cyt <- merge(df.cyt.rep1.melt, df.cyt.rep2.melt, by = idVarsNorep,suffixes=c(".rep1", ".rep2"))
+  df.cyt$expr <- paste(df.cyt$localization,df.cyt$rnaExtract)
+  df.cyt$value.rep1 <- ifelse(is.na(as.numeric(df.cyt$value.rep1)), 0, as.numeric(df.cyt$value.rep1))
+  df.cyt$value.rep2 <-  ifelse(is.na(as.numeric(df.cyt$value.rep2)), 0, as.numeric(df.cyt$value.rep2))
+  
+  df.cyt$value.rep1.pseudo <- applyPseudoValByVar2(value= df.cyt$value.rep1, var=df.cyt$variable)
+  df.cyt$value.rep2.pseudo <- applyPseudoValByVar2(value = df.cyt$value.rep2 , var=df.cyt$variable)
+  
+  df.cyt$rep1.frac <- df.cyt$value.rep1/(df.cyt$value.rep1 + df.cyt$value.rep2)
+  df.cyt$rep1.frac.pseudo <- df.cyt$value.rep1.pseudo/(df.cyt$value.rep1.pseudo + df.cyt$value.rep2.pseudo)
+  
+  df.cyt$rep2.frac <- df.cyt$value.rep2/(df.cyt$value.rep1 + df.cyt$value.rep2)
+  df.cyt$rep2.frac.pseudo <- df.cyt$value.rep2.pseudo/(df.cyt$value.rep1.pseudo + df.cyt$value.rep2.pseudo)
+  
+  df.cyt$rep.ratio <- df.cyt$value.rep1/( df.cyt$value.rep2)
+  df.cyt$rep.ratio.pseudo <- df.cyt$value.rep1.pseudo/(df.cyt$value.rep2.pseudo)
+  
+  df.cyt$value.ave <- (df.cyt$value.rep1 + df.cyt$value.rep2)/2
+  
+  
+  df.nuc.rep1 <- subset(df.rep.1, localization == "nucleus")
+  df.nuc.rep2 <- subset(df.rep.2, localization == "nucleus")
+  
+  idVars <-  c("gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn","replicate","region")
+  idVarsNorep <- c("variable","gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn","region")
+  df.nuc.rep1.melt <- melt(df.nuc.rep1, id.vars=idVars)
+  df.nuc.rep2.melt <- melt(df.nuc.rep2, id.vars = idVars)
+  df.nuc <- merge(df.nuc.rep1.melt, df.nuc.rep2.melt, by = idVarsNorep,suffixes=c(".rep1", ".rep2"))
+  df.nuc$expr <- paste(df.nuc$localization,df.nuc$rnaExtract)
+  df.nuc$value.rep1 <- ifelse(is.na(as.numeric(df.nuc$value.rep1)), 0, as.numeric(df.nuc$value.rep1))
+  df.nuc$value.rep2 <-  ifelse(is.na(as.numeric(df.nuc$value.rep2)), 0, as.numeric(df.nuc$value.rep2))
+  
+  df.nuc$value.rep1.pseudo <- applyPseudoValByVar2(value= df.nuc$value.rep1, var=df.nuc$variable)
+  df.nuc$value.rep2.pseudo <- applyPseudoValByVar2(value = df.nuc$value.rep2 , var=df.nuc$variable)
+  
+  df.nuc$rep1.frac <- df.nuc$value.rep1/(df.nuc$value.rep1 + df.nuc$value.rep2)
+  df.nuc$rep1.frac.pseudo <- df.nuc$value.rep1.pseudo/(df.nuc$value.rep1.pseudo + df.nuc$value.rep2.pseudo)
+  
+  df.nuc$rep2.frac <- df.nuc$value.rep2/(df.nuc$value.rep1 + df.nuc$value.rep2)
+  df.nuc$rep2.frac.pseudo <- df.nuc$value.rep2.pseudo/(df.nuc$value.rep1.pseudo + df.nuc$value.rep2.pseudo)
+  
+  df.nuc$rep.ratio <- df.nuc$value.rep1/( df.nuc$value.rep2)
+  df.nuc$rep.ratio.pseudo <- df.nuc$value.rep1.pseudo/(df.nuc$value.rep2.pseudo)
+  
+  df.nuc$value.ave <- (df.nuc$value.rep1 + df.nuc$value.rep2)/2
+  
+  
+  #df.cytNuc <- rbind(df.cyt,df.nuc)
+  #df.cytNuc[which(df.cytNuc$gene_id %in% pc),"region"] <- "mRNA"
+  #df.cytNuc[which(df.cytNuc$gene_id %in% lnc),"region"] <- "lncRNA"
+  
+  df.cytNuc <- merge(df.cyt,df.nuc,by=c("gene_id","cell","variable"),suffixes=c(".cyt",".nuc"))
+  
+  
+  exportAsTable(file=getFullPath("data/rpkmFromBam-TopTransCellType-Reads-Proc.tab"), df=df.cytNuc)
+  
+}
 
 plotRatiosTopTrans <- function(){
   
@@ -375,6 +518,44 @@ getDataExprBoth <- function(){
     xlab("Flux Nucleus cyt frac. RPKM80") + ylab("RPKMFromBam  Nucleus cyt frac RPKM80")+
     ggtitle("Comparison of Flux and RPKMFromBam\ncyt fraction = cyt/(cyt + nuc)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam80-cytFrac-cells.png"), height=12,width=5)
+  
+  
+  
+  df.flux.ratio.reads <- df.flux.ratio.pos[which(df.flux.ratio.pos$variable =="transcriptTotalReads"),]
+  df.flux.ratio.reads$cellGene <- with(df.flux.ratio.reads,paste(gene_id,cell))
+
+  df.cytNuc.read <- read.csv(sep="\t",file=file=getFullPath("data/rpkmFromBam-TopTransCellType-Reads-Proc.tab"))
+  df.cytNuc.read$cytFracPseudo <- with(df.cytNuc.read, (value.rep1.pseudo.cyt+value.rep2.pseudo.cyt)/(value.rep1.pseudo.cyt + value.rep2.pseudo.cyt + value.rep1.pseudo.nuc + value.rep2.pseudo.nuc))
+  df.cytNuc.read$cytFrac <- with(df.cytNuc.read, (value.ave.cyt)/(value.ave.cyt + value.ave.nuc))
+  df.cytNuc.read.pos <- df.cytNuc.read[which(df.cytNuc.read$value.ave.cyt != 0 & df.cytNuc.read$value.ave.nuc != 0),]
+  df.lpa.ratio.reads <- df.cytNuc.read.pos[which(df.cytNuc.read.pos$variable =="reads"),]
+  df.lpa.ratio.reads$cellGene <- with(df.lpa.ratio.reads,paste(gene_id,cell))
+  
+  fluxBamReads <- merge(df.flux.ratio.reads,df.lpa.ratio.reads,by="cellGene",suffixes=c(".flux",".rfb"))
+  ggplot(fluxBamReads, aes(x=log10(2*value.ave.nuc.flux),y=log10(2*value.ave.nuc.rfb)))+ geom_point(alpha=I(0.2)) +
+    theme_bw() + thisTheme +
+    facet_grid(cell.flux~.) +
+    geom_abline(intercept=0,slope=1) + 
+    xlab("Flux Nucleus Sum Reads") + ylab("RPKMFromBam  Nucleus Sum Reads")+
+    ggtitle("Comparison of Flux and RPKMFromBam\nSum RPKM in Nucleus")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam-READS-nuc-cells.png"), height=12,width=5)
+  
+  ggplot(fluxBamReads, aes(x=log10(value.ave.cyt.flux),y=log10(value.ave.cyt.rfb)))+ geom_point(alpha=I(0.2)) +
+    theme_bw() + thisTheme +
+    facet_grid(cell.flux~.) +
+    geom_abline(intercept=0,slope=1)+ 
+    xlab("Flux Cytosol Sum RPKM80") + ylab("RPKMFromBam Cytosol Sum RPKM80")+
+    ggtitle("Comparison of Flux and RPKMFromBam\nSum RPKM in Cytosol")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam-READS-cyt-cells.png"), height=12,width=5)
+  
+  ggplot(fluxBam, aes(x=cytFrac.flux,y=cytFrac.rfb,color=region.nuc.flux))+ geom_point(alpha=I(0.6)) +
+    theme_bw() + thisTheme +
+    facet_grid(cell.flux~.) +
+    geom_abline(intercept=0,slope=1) + 
+    xlab("Flux Nucleus cyt frac. RPKM80") + ylab("RPKMFromBam  Nucleus cyt frac RPKM80")+
+    ggtitle("Comparison of Flux and RPKMFromBam\ncyt fraction = cyt/(cyt + nuc)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFrac/fluxVRPkmFromBam-READS-cytFrac-cells.png"), height=12,width=5)
+  
   
   
   
