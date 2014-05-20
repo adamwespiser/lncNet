@@ -246,10 +246,16 @@ plotReadDistributionRSEM <- function(){
 }
 
 plotRSEMcytFrac <- function(){
-  df.cytNuc <- read.csv(file=file, stringsAsFactors=FALSE, sep ="\t")
+  df.cytNuc <- read.csv(file=getFullPath("/data/rsemCapData-lpa-proc.tab"), stringsAsFactors=FALSE, sep ="\t")
+  
+  
   df.cyt <- df.cytNuc[which(df.cytNuc$localization == "cytosol"),]
   df.nuc <- df.cytNuc[which(df.cytNuc$localization == "nucleus"),]
   df.cytNuc1 <- merge(df.cyt,df.nuc,by=c("gene_id","cell","variable"),suffixes=c(".cyt",".nuc"))
+  df.cytNuc1$cytFracPseudo <- with(df.cytNuc1, (value.rep1.pseudo.cyt+value.rep2.pseudo.cyt)/(value.rep1.pseudo.cyt + value.rep2.pseudo.cyt + value.rep1.pseudo.nuc + value.rep2.pseudo.nuc))
+  df.cytNuc1$cytFrac <- with(df.cytNuc1, (value.ave.cyt)/(value.ave.cyt + value.ave.nuc))
+  
+  
   
   df.cytNuc.fpkm <- df.cytNuc1[which(df.cytNuc1$variable =="FPKM"),]
   #df.cytNuc.fpkm[which(df.cytNuc.fpkm$gene_id %in% pc),"region"] <- "mRNA"
@@ -262,42 +268,42 @@ plotRSEMcytFrac <- function(){
   ggplot(df.cytNuc.tpm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\TPM: cyt/(nuc + cyt)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/tpm-cytFrac-tpm.png"), height=12,width=5)
+    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nTPM: cyt/(nuc + cyt)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFrac-tpm.png"), height=12,width=5)
   
   ggplot(df.cytNuc.fpkm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\TPM: cyt/(nuc + cyt)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/tpm-cytFrac-fpkm.png"), height=12,width=5)
+    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM: cyt/(nuc + cyt)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFrac-fpkm.png"), height=12,width=5)
   
   
   ggplot(df.cytNuc.fpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\FPKM*): cyt/(nuc + cyt)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/tpm-cytFrac-fpkm80.png"), height=12,width=5)
+    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM80): cyt/(nuc + cyt)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFrac-fpkm80.png"), height=12,width=5)
   
   
   #PLOT pseudo cytFrac
   ggplot(df.cytNuc.tpm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\TPM: cytPseudo/(nucPseudo + cytPseudo)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/tpm-cytFracPseudo-tpm.png"), height=12,width=5)
+    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nTPM: cytPseudo/(nucPseudo + cytPseudo)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFracPseudo-tpm.png"), height=12,width=5)
   
   ggplot(df.cytNuc.fpkm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\TPM: cytPseudo/(nucPseudo + cytPseudo)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/tpm-cytFracPseudo-fpkm.png"), height=12,width=5)
+    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM: cytPseudo/(nucPseudo + cytPseudo)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFracPseudo-fpkm.png"), height=12,width=5)
   
   
   ggplot(df.cytNuc.fpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\FPKM*): cytPseudo/(nucPseudo + cytPseudo)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/tpm-cytFracPseudo-fpkm80.png"), height=12,width=5)
+    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM80): cytPseudo/(nucPseudo + cytPseudo)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFracPseudo-fpkm80.png"), height=12,width=5)
   
 }
 
