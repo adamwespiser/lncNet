@@ -88,7 +88,7 @@ runDownloadMoniter <- function(){
       system(cmds[2])
       system(cmds[3])
       Sys.sleep(10)
-    } 
+    }
     Sys.sleep(600)
   }
 } 
