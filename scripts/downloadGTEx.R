@@ -96,9 +96,10 @@ runDownloadMoniter <- function(){
 
 #runDownloadMoniter()
 
-runConvertToFastq <- function(script=""~/sandbox/downloadGTEx_sraToFastQ.sh""){
+runConvertToFastq <- function(script="~/sandbox/downloadGTEx_sraToFastQ.sh"){
   #downloadFileMissing()
   df <- readInGTExAllMeta()
+  df$cddownloadCmd <- paste0("cd /data/wespisea/gtex/sraDB;~/bin/sratoolkit.2.3.5-2-ubuntu64/bin/fastq-dump -O /data/wespisea/gtex/fastq/ --split-files -gzip /data/wespisea/gtex/sra/",df$run_accession,".sra")
   gtexDir <- "/data/wespisea/gtex/fastq/"
   df$fastq1 <- paste0(gtexDir, df$run_accession, "_1.fastq.gz")
   df$fastq2 <- paste0(gtexDir, df$run_accession, "_2.fastq.gz")
@@ -107,11 +108,16 @@ runConvertToFastq <- function(script=""~/sandbox/downloadGTEx_sraToFastQ.sh""){
   df.need <- df[which(df$haveFiles == FALSE),]
   
   
-  write(paste0(df.need$cddownloadCmd,rep(c(" &"," "),length=length(df.need$cddownloadCmd))), file=script) 
+  o.convert <- paste0(df.need$cddownloadCmd,rep(c(" &"," "),length=length(df.need$cddownloadCmd)))
   
+  len <- length(o.convert)
+  midpoint <- floor(len/2)
+  write(o.convert[1:midpoint], file = "~/sandbox/downloadGTEx_sraToFastQ_1.sh")
+  write(o.convert[(midpoint+1):len], file = "~/sandbox/downloadGTEx_sraToFastQ_2.sh")
   
-  
-  
+  convert.cmd1 <- paste0("screen -d -m sh -c \"~/sandbox/downloadGTEx_sraToFastQ_1.sh\"")
+  convert.cmd2 <- paste0("screen -d -m sh -c \"~/sandbox/downloadGTEx_sraToFastQ_1.sh\"")
+  # ../sra/SRR612347.sra 
 }
 
 
