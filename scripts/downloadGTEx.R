@@ -94,8 +94,24 @@ runDownloadMoniter <- function(){
 } 
 
 
-runDownloadMoniter()
+#runDownloadMoniter()
 
-
+runConvertToFastq <- function(script=""~/sandbox/downloadGTEx_sraToFastQ.sh""){
+  #downloadFileMissing()
+  df <- readInGTExAllMeta()
+  gtexDir <- "/data/wespisea/gtex/fastq/"
+  df$fastq1 <- paste0(gtexDir, df$run_accession, "_1.fastq.gz")
+  df$fastq2 <- paste0(gtexDir, df$run_accession, "_2.fastq.gz")
+  df$sraFile <- paste0("/data/wespisea/gtex/sra/",df$run_accession,".sra")
+  df$haveFiles <- file.exists(df$fastq1)
+  df.need <- df[which(df$haveFiles == FALSE),]
+  
+  
+  write(paste0(df.need$cddownloadCmd,rep(c(" &"," "),length=length(df.need$cddownloadCmd))), file=script) 
+  
+  
+  
+  
+}
 
 
