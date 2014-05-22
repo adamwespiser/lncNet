@@ -117,6 +117,10 @@ runConvertToFastq <- function(script="~/sandbox/downloadGTEx_sraToFastQ.sh"){
   
   convert.cmd1 <- paste0("screen -d -m sh -c \"~/sandbox/downloadGTEx_sraToFastQ_1.sh\"")
   convert.cmd2 <- paste0("screen -d -m sh -c \"~/sandbox/downloadGTEx_sraToFastQ_1.sh\"")
+  system(convert.cmd1)
+  system(convert.cmd2)
+  
+  
   # ../sra/SRR612347.sra 
 }
 

@@ -9,7 +9,8 @@
 getReportsForGene <- function(){
   list(flux=readInTable(getFullPath("/data/fluxCapData-lpa-proc-REPORT.tab")),
        rpkmFromBam=readInTable(getFullPath("/data/rpkmFromBAMCapData-lpa-proc-REPORT.tab")),
-       rsem=readInTable(getFullPath("/data/rsemCapData-lpa-proc-REPORT.tab")))
+       rsem=readInTable(getFullPath("/data/rsemCapData-lpa-proc-REPORT.tab")),
+       rfgTopTransEx=readInTable(getFullPath("/data/rpkmFromBam-ExonCounting-TopTransCellType-RRPM-REPORT.tab")))
 }
 
 plotRepQC <- function(){
@@ -36,7 +37,57 @@ plotRepQC <- function(){
 }
 
 
-
+plotRepQC_meanRPKM <- function(){
+  rep = getReportsForGene()
+  colNames <- c("cell", "localization","experiment", "replicate","genesExpressed", "meanRPKM","sumRPKM")
+  
+  flux=rep$flux[c("cell", "localization","experiment", "replicate","genesExpressed", "meanRPKMforGene")]
+  flux$sumRPKM = with(flux,meanRPKMforGene * genesExpressed)
+  rpkmFromBam=rep$rpkmFromBam[c("cell", "localization","experiment", "replicate","genesExpressed", "meanRPKM","sumRPKM")]
+  rfgTopTransEx=rep$rfgTopTransEx[c("cell", "localization","experiment", "replicate","genesExpressed", "meanRPKM","sumRPKM")]
+  rsem=rep$rsem[c("cell", "localization","experiment", "replicate","genesExpressed", "meanFPKM","sumFPKM")]
+  
+  
+  colnames(flux) <- colNames
+  colnames(rsem) <- colNames
+  
+  
+  flux$method = "flux"
+  rsem$method = "rsem"
+  rpkmFromBam$method = "rpkmFromBam"
+  rfgTopTransEx$method = "rfgTopTransEx"
+  
+  
+  comb <- rbind(flux,rsem,rpkmFromBam,rfgTopTransEx)
+  comb$tag <- with(comb,paste(cell,experiment,sep="."))
+  
+  ggplot(comb, aes(x=tag, y=genesExpressed))+facet_grid(method~.,scale="free_y") + geom_bar() +
+    ggtitle("Number of genes with read information\nFacets are different methods")+
+    xlab("cell.localization.replicate") +
+    ylab("count of genes expressed") +
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+  ggsave(file=getFullPath("plots/rnaExpr/mappedReads/compareMethods/genesExpressed.pdf"),height=7,width=12)
+  
+  ggplot(comb, aes(x=tag, y=meanRPKM))+facet_grid(method~.,scale="free_y") + geom_bar() +
+    ggtitle("meanRPKM\nFacets are different methods")+
+    xlab("cell.localization.replicate") +
+    ylab("meanRPKM") +
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+  ggsave(file=getFullPath("plots/rnaExpr/mappedReads/compareMethods/meanRPKM.pdf"),height=7,width=12)
+  
+  ggplot(comb, aes(x=tag, y=sumRPKM))+facet_grid(method~.,scale="free_y") + geom_bar() +
+    ggtitle("sumRPKM\nFacets are different methods")+
+    xlab("cell.localization.replicate") +
+    ylab("sumRPKM") +
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+  ggsave(file=getFullPath("plots/rnaExpr/mappedReads/compareMethods/sumRPKM.pdf"),height=7,width=12)
+  
+  
+  
+}
 
 plotReadLengths <- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")

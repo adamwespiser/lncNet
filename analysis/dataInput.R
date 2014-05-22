@@ -229,7 +229,7 @@ getCombinedCytNucData <- function(file=IMR.comb.expr){
 fetchEncodeDccFilesText <- function(filesTxt="~/data/wgEncodeCshlLongRnaSeqFiles.txt",
                                     filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab"){
   if (!file.exists(filesTxt)){
-    download.file("http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeCshlLongRnaSeq/files.txt",dest=fileTxt)
+    download.file("http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeCshlLongRnaSeq/files.txt",dest=filesTxt)
   }
   
   d <- readLines(filesTxt)
