@@ -302,7 +302,7 @@ plotRSEMcytFrac <- function(){
   ggplot(df.cytNuc.fpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
-    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM80): cytPseudo/(nucPseudo + cytPseudo)")
+    ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM80: cytPseudo/(nucPseudo + cytPseudo)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFracPseudo-fpkm80.png"), height=12,width=5)
   
 }
