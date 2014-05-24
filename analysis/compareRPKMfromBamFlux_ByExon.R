@@ -89,6 +89,10 @@ processCellsMaxTransExpr_ByExon <- function(){
   df.together <- data.frame()
   for ( cell in unique(annot.df$cell)){
     print(cell)
+    readLen.vec <-  annot.df[which(annot.df$cell == cell),"readLength"]
+    if (FALSE == (sum(readLen.vec[1] == readLen.vec) == length(readLen.vec))){
+      print(paste("READ LENGTHS DIFFER :-( ", cell, "problematic"))
+    }
     a.cell <- annot.df[which(annot.df$cell == cell),]
     a.cell.cyt1 <- read.csv(file=a.cell[which(a.cell$rep == 1 & a.cell$localization == "cytosol"),"rfbTrans"],sep="\t",stringsAsFactors=FALSE)
     a.cell.cyt1$localization <- "cytosol"
@@ -113,8 +117,10 @@ processCellsMaxTransExpr_ByExon <- function(){
     cTrans$cell <- cell                       
     cTrans$reads <- as.numeric(cTrans$reads)
     cTrans$length <- as.numeric(cTrans$length)
+    cTrans$readLength = readLen.vec[1]
     cTransRPKM <- as.data.frame(group_by(cTrans,localization,replicate) %.% mutate(millReads = sum(reads,na.rm=TRUE)/(10^6),
-                                                                                   RPKM = (reads * 10^9)/(length * sum(reads,na.rm=TRUE)) ))
+                                                                                   RPKM = (reads * 10^9)/(length * sum(reads,na.rm=TRUE)),
+                                                                                   TPM  = (reads * readLength * 10^6)/(length * (sum(reads * readLength/length))) ))
     
     df.together <- rbind(df.together,cTransRPKM)
     
@@ -148,6 +154,21 @@ getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon <- function(){
                            "sumRPKM","genesExpressed","spikeInDetected" ,"experiment")
   exportAsTable(df=report.df, file = getFullPath("/data/rpkmFromBam-ExonCounting-TopTransCellType-RRPM-REPORT.tab"))
   
+  
+  reportTPM.df  <- as.data.frame(group_by(df.together,cell,localization,replicate) %.%
+                                summarise(length(gene_id),
+                                          mean(RPKM),
+                                          sum(RPKM),
+                                          sum(RPKM > 0),
+                                          sum(isSpikeIn)))
+  
+  reportTPM.df$experiment <- paste(ifelse(reportTPM.df$localization == "cytosol", "cyt", "nuc"),reportTPM.df$replicate,sep=".")
+  colnames(reportTPM.df) <- c("cell", "localization", "replicate", "genesFound", "meanTPM", 
+                           "sumTPM","genesExpressed","spikeInDetected" ,"experiment")
+  exportAsTable(df=report.df, file = getFullPath("/data/rpkmFromBam-ExonCounting-TopTransCellType-TPM-REPORT.tab"))
+  
+  
+  
   df.together <- as.data.frame(group_by(df.together, cell, localization,rnaExtract,replicate) %.% 
                                  mutate(RPKM_80norm = apply80norm(RPKM) * 1000000))
   
@@ -155,7 +176,7 @@ getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon <- function(){
   
   #exportAsTable(file=getFullPath("/data/rpkmFromBamTopTransAllCells.tab"), df=df.together)
   df.together$gene_type <- df.together$region
-  df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "RPKM_80norm","RPKM","reads","concBySpikeIn")]
+  df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "RPKM_80norm","RPKM","reads","concBySpikeIn","TPM")]
   
   df.rep.1 <- subset(df.abbrev, replicate == 1)
   df.rep.2 <- subset(df.abbrev, replicate == 2)
@@ -235,6 +256,8 @@ plotRatiosTopTrans <- function(){
   
   
   df.lpa.ratio.rpkm <- df.cytNuc.pos[which(df.cytNuc.pos$variable =="RPKM"),]
+  df.lpa.ratio.tpm <- df.cytNuc.pos[which(df.cytNuc.pos$variable =="TPM"),]
+  
   df.lpa.ratio.rpkm80 <- df.cytNuc.pos[which(df.cytNuc.pos$variable =="RPKM_80norm"),]
   
   if(!file.exists(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/"))){
@@ -253,6 +276,22 @@ plotRatiosTopTrans <- function(){
     facet_grid(cell~region.cyt)+
     ggtitle("RPKMfromBAM Top Trans Count By Exon\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)")
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/rpkm-cells.png"), height=12,width=5)
+  
+  
+  #TPM 
+  ggplot(df.lpa.ratio.tpm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM Top Trans Count By Exon\nFraction of Cytosolic RNA-seq expr\nTPM: cytPseudo/(nucPseudo + cytPseudo)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/tpmPseudo-cells.png"), height=12,width=5)
+  
+  ggplot(df.lpa.ratio.tpm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+
+    ggtitle("RPKMfromBAM Top Trans Count By Exon\nFraction of Cytosolic RNA-seq expr\nTPM: cyt/(nuc + cyt)")
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/tpm-cells.png"), height=12,width=5)
+  
+  
   
   ggplot(df.lpa.ratio.rpkm, aes(x=cytFracPseudo,fill=factor(region.cyt)))+
     geom_bar(position="dodge") + theme_bw() + thisTheme + 
@@ -307,29 +346,29 @@ plotRatiosTopTrans <- function(){
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) +  
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     facet_grid(localization~cell) + 
-    scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","concBySpikeIn"),
-                     labels=c("reads","RPKM"  ,"RPKM_80","conc."))+ ylim(0,1) +
+    scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","concBySpikeIn","TPM"),
+                     labels=c("reads","RPKM"  ,"RPKM_80","conc.","TPM"))+ ylim(0,1) +
     thisTheme + 
-    ggtitle("RPKMfromBam Top Trans Count by Exon\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80\nfrac.rep1=(rep1)/(rep1 + rep2)")+
+    ggtitle("RPKMfromBam Top Trans Count by Exon\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/conc/TPM\nfrac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/readCount-cytNuc-region.png"), height=5,width=12)
   
   # combined
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
-    scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","concBySpikeIn"),
-                     labels=c("reads","RPKM"  ,"RPKM_80","conc."))+ ylim(0,1) +
+    scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","concBySpikeIn","TPM"),
+                     labels=c("reads","RPKM"  ,"RPKM_80","conc.","TPM"))+ ylim(0,1) +
     thisTheme2 + 
-    ggtitle("RPKMfromBam Top Trans Count by Exon\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMspikeIn/Conc\n frac.rep1=(rep1)/(rep1 + rep2)")+
+    ggtitle("RPKMfromBam Top Trans Count by Exon\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMspikeIn/Conc/TPM\n frac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/readCount-cytNuc-all-combined.png"), height=5,width=10)
   
   ggplot(m.df, aes(x=measure,y=frac.rep1)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
-    scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","concBySpikeIn"),
-                     labels=c("reads","RPKM"  ,"RPKM_80","conc."))+ ylim(0,1) +
+    scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","concBySpikeIn","TPM"),
+                     labels=c("reads","RPKM"  ,"RPKM_80","conc.","TPM"))+ ylim(0,1) +
     thisTheme2 + 
-    ggtitle("RPKMfromBam Top Trans Count by Exon\nfraction of cytosol & nucleus\nreads/RPKM/RPKM80/RPKMspikeIn/Conc\nfrac.rep1=(rep1)/(rep1 + rep2)")+
+    ggtitle("RPKMfromBam Top Trans Count by Exon\nfraction of cytosol & nucleus\nreads/RPKM/RPKM80/RPKMspikeIn/Conc/TPM\nfrac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/readCount-cytNuc-all-combined-join.png"), height=5,width=10)
   
@@ -338,9 +377,9 @@ plotRatiosTopTrans <- function(){
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     facet_grid(~localization) +
-    scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","concBySpikeIn"),
-                     labels=c("reads","RPKM"  ,"RPKM_80","conc."))+ ylim(0,1) +
-    thisTheme2 + ggtitle("RPKMfromBam Top Trans Count by Exon\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80\nfrac.rep1=(rep1)/(rep1 + rep2)")+
+    scale_x_discrete(limits=c("reads","RPKM", "RPKM_80norm","concBySpikeIn","TPM"),
+                     labels=c("reads","RPKM"  ,"RPKM_80","conc.","TPM"))+ ylim(0,1) +
+    thisTheme2 + ggtitle("RPKMfromBam Top Trans Count by Exon\nfraction of cytosol & nucleus \nreads/RPKM/RPKM80/RPKMspikeIn/Conc/TPM\nfrac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/readCount-cytNuc-combined.png"), height=6,width=10)
   
