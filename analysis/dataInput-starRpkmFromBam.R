@@ -44,7 +44,8 @@ generateRPKMFromBamFromStar <- function(){
   write(outputTotal, file="~/sandbox/procUniqReads")
   scpFile(file.local="~/sandbox/procUniqReads", dir.remote="~/bin/")
   # cat ~/bin/procUniqReads | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 183840 -W 600 -Q short -t procUniqReads -i "{}"
-                        
+  fileOut <- paste0(file.path(rnaseqdir,"starSpikeIn",df.comb[which(df.comb$read1.rnaExtract == "longPolyA"),"bare"]),".uniq.transByExon.gtf")
+  sapply(fileOut, hpc.file.exists)                      
  
 }
 
@@ -73,7 +74,7 @@ generateRPKMFromBamFromSortedSam <- function(){
   cmd0 <- "head -n 50000 test.star_sort.sam | grep \\^@  > test.uniq.star_sort.sam;;grep NH:i:1 test.star_sort.sam >> test.uniq.star_sort.sam"
   o0 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd0,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
   
-  cmd1 <- "samtools view -bS  test.uniq.star_sort.sam -o test.uniq.star.bam"
+  cmd1 <- "samtools view -bS  test.uniq.star_sort.sam -o test.uniq.star_sort.bam"
   o1 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd1,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
   
   cmd2 <- "samtools index test.uniq.star_sort.bam"
@@ -91,9 +92,10 @@ generateRPKMFromBamFromSortedSam <- function(){
   
   write(outputTotal, file="~/sandbox/procStarSort")
   scpFile(file.local="~/sandbox/procStarSort", dir.remote="~/bin/")
-  # cat ~/bin/procUniqReads | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 18340 -W 600 -Q short -t starSort -i "{}"
+  # cat ~/bin/procStarSort | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 18340 -W 600 -Q short -t starSort3 -i "{}"
   
-  
+  fileOut <- paste0(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),"uniq.star_sort.transByExon.gtf")
+  sapply(fileOut, hpc.file.exists)   
 }
 
 

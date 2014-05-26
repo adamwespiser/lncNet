@@ -8,7 +8,7 @@ doit <- function(){
 
 doitUniqReads <- function(){
   getRpkmFromBamDataForOneCellByExon(suffix=".uniq.transByExon.gtf",writeCopyScript=TRUE)
-  source("~/sandbox/rpkmFromBamExonFetch")
+  system("~/sandbox/rpkmFromBamExonFetch")
  
   uniqOutfile=getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM.tab")
   uniqReportFile = getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM-REPORT.tab")
