@@ -38,8 +38,11 @@ list.of.packages <- c(
   "devtools", # for github installs
   "stringr",
   "plyr",
-  "dplyr"
+  "dplyr",
+  "VennDiagram"
 )
+installPkgs <- FALSE
+if(installPkgs){
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
 
@@ -54,7 +57,7 @@ if (!("gbm" %in% installed.packages()) && "devtools" %in% install.packages()) {
 lapply(list.of.packages, function(lib){
   library(lib, character.only=TRUE)
 })
-
+}
 calcNumCores <- function(){
   numCores <- detectCores()
   if(numCores > 8){

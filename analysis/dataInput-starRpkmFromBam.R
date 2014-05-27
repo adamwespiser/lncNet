@@ -96,9 +96,9 @@ generateRPKMFromBamFromSortedSam <- function(){
   
   write(outputTotal, file="~/sandbox/procStarSort")
   scpFile(file.local="~/sandbox/procStarSort", dir.remote="~/bin/")
-  # cat ~/bin/procStarSort | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 18340 -W 600 -Q short -t starSort3 -i "{}"
+  # cat ~/bin/procStarSort | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 8 -m 18340 -W 600 -Q short -t starSort4 -i "{}"
   
-  fileOut <- paste0(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),"uniq.star_sort.transByExon.gtf")
+  fileOut <- paste0(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),".uniq.star_sort.transByExon.gtf")
   sapply(fileOut, hpc.file.exists)   
   
   fileOut <- paste0(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),".star_sort.sam")
