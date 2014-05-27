@@ -46,7 +46,11 @@ generateRPKMFromBamFromStar <- function(){
   # cat ~/bin/procUniqReads | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 183840 -W 600 -Q short -t procUniqReads -i "{}"
   fileOut <- paste0(file.path(rnaseqdir,"starSpikeIn",df.comb[which(df.comb$read1.rnaExtract == "longPolyA"),"bare"]),".uniq.transByExon.gtf")
   sapply(fileOut, hpc.file.exists)                      
- 
+  
+  
+  fileOut <- paste0(file.path(rnaseqdir,"starSpikeIn",df.comb[which(df.comb$read1.rnaExtract == "longPolyA"),"bare"]),".uniq.star.samAligned.out.sam")
+  sapply(fileOut, hpc.file.exists)  
+  
 }
 
 
@@ -96,6 +100,10 @@ generateRPKMFromBamFromSortedSam <- function(){
   
   fileOut <- paste0(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),"uniq.star_sort.transByExon.gtf")
   sapply(fileOut, hpc.file.exists)   
+  
+  fileOut <- paste0(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),".star_sort.sam")
+  sapply(fileOut, hpc.file.exists)  
+  
 }
 
 
