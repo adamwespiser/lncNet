@@ -7,14 +7,14 @@ doit <- function(){
 }
 
 doitUniqReads <- function(){
-  getRpkmFromBamDataForOneCellByExon(suffix=".uniq.star_sort.transByExon.gtf",writeCopyScript=TRUE)
+  getRpkmFromBamDataForOneCellByExon(suffix=".uniq.star_sort.transByExon.gtf",transSuffix=".uniq.star_sort.trans.gtf",writeCopyScript=TRUE)
   system("~/sandbox/rpkmFromBamExonFetch")
   
   uniqOutfile=getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM.tab")
   uniqReportFile = getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM-REPORT.tab")
   processCellsMaxTransExpr_ByExon(suffix=".uniq.star_sort.transByExon.gtf",transSuffix=".uniq.star_sort.trans.gtf",outfile=uniqOutfile)
   procFile = getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon(infile=uniqOutfile,reportFile=uniqReportFile)
-  plotRatiosTopTrans(infile=procFile, outdir = paste0(outdir,"/"))
+  plotRatiosTopTrans(infile=procFile, outdir = getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon_uniqRead/"))
   
 }
 
@@ -273,6 +273,8 @@ getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon <- function(infile=getFullP
   
   
   exportAsTable(file=outfile, df=df.cytNuc)
+  exportAsTable(file=paste0(outfile,".rbind"), df=df.cytNuc.rbind)
+  
   outfile
 }
 
