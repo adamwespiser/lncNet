@@ -14,7 +14,9 @@ doitUniqReads <- function(){
   uniqReportFile = getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM-REPORT.tab")
   processCellsMaxTransExpr_ByExon(suffix=".uniq.star_sort.transByExon.gtf",transSuffix=".uniq.star_sort.trans.gtf",outfile=uniqOutfile)
   procFile = getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon(infile=uniqOutfile,reportFile=uniqReportFile)
-  plotRatiosTopTrans(infile=procFile, outdir = getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon_uniqRead/"))
+  plotRatiosTopTrans(infile=procFile,
+                     outdir = getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon_uniqRead/"),
+                     plotMsg="unique reads mapped by STAR")
   
 }
 
@@ -283,8 +285,8 @@ getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon <- function(infile=getFullP
 }
 
 
-plotRatiosTopTrans <- function(infile,outdir = getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/",
-                                                           plotMsg=" ")){
+plotRatiosTopTrans <- function(infile,outdir = getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon/"),
+                                                           plotMsg=" "){
   
   df.cytNuc <- read.csv(sep="\t",file=infile)
   df.cytNuc$cytFracPseudo <- with(df.cytNuc, (value.rep1.pseudo.cyt+value.rep2.pseudo.cyt)/(value.rep1.pseudo.cyt + value.rep2.pseudo.cyt + value.rep1.pseudo.nuc + value.rep2.pseudo.nuc))
