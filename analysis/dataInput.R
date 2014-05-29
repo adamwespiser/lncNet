@@ -1057,7 +1057,7 @@ runRSEMonCytNuc <- function(){
   rpkmFromBamOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM","rpkmFromBam",df.comb$bare)
   
   
-  o1 <- paste0("gzip -d ",read1,";;gzip -d ",read2,";;rsem-calculate-expression --num-threads 8 -ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ ",rsemOutput )
+  o1 <- paste0("gzip -d ",read1,";;gzip -d ",read2,";;rsem-calculate-expression --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ ",rsemOutput )
   write(o1, file="~/sandbox/rsemReadMap")
   scpFile(file.local="~/sandbox/rsemReadMap", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTaskR301.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 2880 -Q long -t rsem
@@ -1072,6 +1072,15 @@ runRSEMonCytNuc <- function(){
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool -c 5 -m 8192 -W 600 -Q short -t rpkmRSEM
   fileOut <- paste0(rpkmFromBamOutput,".exon.gtf")
   gtfFound <- sapply(fileOut, hpc.file.exists)
+  
+  
+  #/project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19
+  rsemOutput <- file.path(rnaseqdir,"rsem-hg19-gencodeV19",df.comb$bare)
+  o1 <- paste0("rsem-calculate-expression --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",rsemOutput )
+  write(o1, file="~/sandbox/rsemReadMap2")
+  scpFile(file.local="~/sandbox/rsemReadMap2", dir.remote="~/bin/")
+  #cat ~/bin/rsemReadMap2 | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem2" -i "{}"
+  
   
   
 }
@@ -1425,7 +1434,33 @@ plotReadQualityFastq <- function(){
 
 
 
+compileStarLogFinalOut <- function(localDir = "/home/wespisea/data/starSpikeDat/"){
+  
+  if(!file.exists(localDir)){
+    dir.create(localDir)
+  }
+  
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  remoteDir <- file.path(rnaseqdir,"starSpikeIn",df.comb$bare)
+  
+  
+  df.comb$remote <- paste0(remoteDir,".star.samLog.final.out")
+#  df.comb$downloadCmd <- 
+    if(writeCopyScript){
+      o1 <- paste0("scp aw30w@ghpcc06.umassrc.org:",df.comb$remote, " ",localDir,paste0(df.comb$bare,"star.samLog.final.out"))
+      write(o1,file="~/sandbox/getStarInfo")
+      system("chmod u+x ~/sandbox/getStarInfo")    
+      system("~/sandbox/getStarInfo")
 
+    }
+  
+}
 
 
 
