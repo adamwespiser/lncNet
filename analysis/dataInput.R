@@ -1054,6 +1054,8 @@ runRSEMonCytNuc <- function(){
   read2.fa <- gsub(x=read1,pattern=".gz",replacement="")
   
   rsemOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM",df.comb$bare)
+  rpkmFromBamOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM","rpkmFromBam",df.comb$bare)
+  
   
   o1 <- paste0("gzip -d ",read1,";;gzip -d ",read2,";;rsem-calculate-expression --num-threads 8 -ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ ",rsemOutput )
   write(o1, file="~/sandbox/rsemReadMap")
@@ -1061,7 +1063,21 @@ runRSEMonCytNuc <- function(){
   # perl /home/aw30w/bin/runTaskR301.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 2880 -Q long -t rsem
   #cat ~/bin/rsemReadMap | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem" -i "{}"
   
+  cmd8 <- "java -jar -Xmx24g /home/aw30w/bin/bam2rpkm-0.06/bam2rpkm-0.06.jar -f /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn.gtf -i test.transcript.sorted.bam -r exon -o target.exon.gtf"
+  o8 <- as.character(unlist(sapply(rsemOutput, function(filename)gsub(x=cmd8,pattern="test", replacement=filename))))
+  o8 <- as.character(unlist(sapply(seq_along(o8), function(i)gsub(x=o8[i],pattern="target", replacement=rpkmFromBamOutput[i]))))
+  
+  write(o8, file="~/sandbox/rpkm-tool")
+  scpFile(file.local="~/sandbox/rpkm-tool", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool -c 5 -m 8192 -W 600 -Q short -t rpkmRSEM
+  fileOut <- paste0(rpkmFromBamOutput,".exon.gtf")
+  gtfFound <- sapply(fileOut, hpc.file.exists)
+  
+  
 }
+
+#rsem-prepare-reference --gtf /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.gtf /project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.spikeIn.fa --transcript-to-gene-map /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.transGene.tab  /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19/
+
 
 
 
@@ -1197,6 +1213,13 @@ generateStarBedops<- function(){
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool-exon -c 5 -m 8192 -W 600 -Q short -t rpkm
   
   
+  
+  
+  
+  
+  
+  
+  
   cmd5.1 <- "python reads-in-features.py  --sam=test.star_sort.sam --gff=/project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.pc.gtf  --label=mRNA --stranded=TRUE --outprefix=COUNT_FILE.mRNA."
   cmd5.2 <- "python reads-in-features.py  --sam=test.star_sort.sam --gff=/project/umw_zhiping_weng/wespisea/gtf/gencode.v19.long_noncoding_RNAs.gtf  --label=lnc --stranded=TRUE --outprefix=COUNT_FILE.lncRNA."
   o5 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste(cmd5.1,cmd5.2,sep="\n"),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)),
@@ -1227,11 +1250,6 @@ generateStarBedops<- function(){
   
   write(o, file="~/sandbox/starToBed.sh")
   # cat ~/bin/starToBed.sh | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 20480 -W 600 -Q short -t "star2Bed" -i "{}"
-  
-  
-  
-  
-  
   
   
   
@@ -1364,15 +1382,7 @@ downloadCellDataLpa <- function(){
   scpFile(file.local="~/sandbox/processStarAlign", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/processStarAlign -c 26 -m 4096 -W 10:0 -Q short -t flux
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
   
   cmd5.1 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.bed > COUNT_FILE.multicov.allTrans.uniqReads"
   cmd5.2 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.singleTrans.bed > COUNT_FILE.multicov.singleTrans.uniqReads"
