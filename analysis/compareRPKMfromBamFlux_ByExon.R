@@ -7,6 +7,8 @@ bothRuns <- function(){
   
   getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon(infile=uniqOutfile,reportFile=uniqReportFile)
   getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon()
+  source('~/work/research/researchProjects/coexpr/lncNET/analysis/rsemVsRpkmFromBam.R')
+  plotMultiVsUniqReads()
 }
 
 doit <- function(){

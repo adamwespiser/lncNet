@@ -54,10 +54,10 @@ plotMultiVsUniqReads <- function(){
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamCompare/reads-uniqVsMulti-byCell.png"),height=8,width=8)
   
   
-  comb.reads <- comb[which(comb$variable == "reads"),]
-  comb.reads$multi <- 2*comb.reads$value.ave.nuc.multi + 2*comb.reads$value.ave.cyt.multi
-  comb.reads$uniq <- 2*comb.reads$value.ave.nuc.uniq + 2*comb.reads$value.ave.cyt.uniq
-  annom <- comb.reads[which(comb.reads$uniq > comb.reads$multi),]
+  #comb.reads <- comb[which(comb$variable == "reads"),]
+  #comb.reads$multi <- 2*comb.reads$value.ave.nuc.multi + 2*comb.reads$value.ave.cyt.multi
+  #comb.reads$uniq <- 2*comb.reads$value.ave.nuc.uniq + 2*comb.reads$value.ave.cyt.uniq
+  #annom <- comb.reads[which(comb.reads$uniq > comb.reads$multi),]
   
   #subset(rfbMulti, gene_id == "ENSG00000001626.10" & cell == "MCF-7")[c("variable","value.ave.nuc","value.ave.cyt")]
   #subset(rfbUniq, gene_id == "ENSG00000001626.10" & cell == "MCF-7")[c("variable","value.ave.nuc","value.ave.cyt")]
