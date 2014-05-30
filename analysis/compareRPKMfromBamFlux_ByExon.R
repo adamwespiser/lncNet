@@ -2,7 +2,7 @@
 
 
 doit <- function(){
-  processCellsMaxTransExpr_ByExon()
+  processCellsMaxTransExpr_ByExon(suffix=".transByExon.gtf",transSuffix=".transFromExon.gtf")
   getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon()
 }
 
@@ -37,6 +37,7 @@ getRpkmFromBamDataForOneCellByExon <- function( filesTxtTab="~/data/wgEncodeCshl
   if(writeCopyScript){
     o1 <- paste0("scp aw30w@ghpcc06.umassrc.org:",df.comb$remote, " /home/wespisea/data/rpkmFromBam/",paste0(df.comb$bare,suffix))
     write(o1,file="~/sandbox/rpkmFromBamExonFetch")
+    system("~/sandbox/rpkmFromBamExonFetch")
   }
   df.comb$rpkmFromBamFile <- paste0("/home/wespisea/data/rpkmFromBam/",df.comb$bare,suffix)
   df.comb <- df.comb[c("read1.localization", "read1.cell", "read1.rnaExtract","read2.replicate" ,"rpkmFromBamFile", "bare","read1.readLength")]
@@ -93,8 +94,8 @@ convertExonsToTrans <- function(transFile,exonFile){
   1
 }
 
-processCellsMaxTransExpr_ByExon <- function(suffix=".transByExon.gtf",
-                                            transSuffix=".transFromExon.gtf",
+processCellsMaxTransExpr_ByExon <- function(suffix=".transFromExon.gtf",
+                                            transSuffix=".transByExon.gtf",
                                             skipCells=c("none"),
                                             outfile=getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-RRPM.tab")){
   annot.df <- getRpkmFromBamDataForOneCellByExon(suffix=suffix,transSuffix=transSuffix)
