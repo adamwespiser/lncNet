@@ -1034,6 +1034,41 @@ runFASTQC <- function(){
 }
 
 
+checkDownloadedFastq <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol"))
+  
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  
+  filenames <- c(df.fastq$filename)
+  filenamesDecomp <- gsub(filenames , pattern="\\.gz", replacement="")
+  remote.site <- cshl.rnaseq.dir
+  rna.remote <- file.path("/project/umw_zhiping_weng/wespisea/","rna-seq/")
+  
+  web.file <- paste0(remote.site,filenames)
+  remote.file <- paste0(rna.remote,filenames)
+  remote.decomp <- paste0(rna.remote,filenamesDecomp)
+  
+  downloadClear <- paste0("rm ", remote.file)
+  downloadClearDecomp <- paste0("rm ", remote.decomp)
+  gzipCmd <- paste0("gzip -d " ,remote.file)
+  downloadCmd <- paste0("wget --continue ", web.file, " -O ", remote.file)
+  
+  fastqFound <- sapply(remote.decomp, hpc.file.exists)
+  
+  need <- c(downloadClear[which(fastqFound == FALSE)],
+            downloadClearDecomp[which(fastqFound == FALSE)],
+            downloadCmd[which(fastqFound == FALSE)],gzipCmd[which(fastqFound == FALSE)])
+  write(need, file="~/sandbox/getFastq")
+  scpFile(file.local="~/sandbox/getFastq", dir.remote="~/bin/")
+                        
+
+}
+
+
+
 runRSEMonCytNuc <- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
   df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
@@ -1078,7 +1113,7 @@ runRSEMonCytNuc <- function(){
   
   #/project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19
   rsemOutput <- file.path(rnaseqdir,"rsem-hg19-gencodeV19",df.comb$bare)
-  o1 <- paste0("rsem-calculate-expression --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read1.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",rsemOutput )
+  o1 <- paste0("rsem-calculate-expression --keep-intermediate-file --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read1.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",rsemOutput )
   write(o1, file="~/sandbox/rsemReadMap2")
   scpFile(file.local="~/sandbox/rsemReadMap2", dir.remote="~/bin/")
   #cat ~/bin/rsemReadMap2 | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem2" -i "{}"

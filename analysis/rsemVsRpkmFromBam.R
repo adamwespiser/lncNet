@@ -41,7 +41,7 @@ plotMultiVsUniqReads <- function(){
   ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamCompare/tpm-uniqVsMulti-byCell.png"),height=8,width=8)
   
   
-  ggplot(comb[which(comb$variable == "reads"),], aes(x=log10(2*value.ave.nuc.multi + 2*value.ave.cyt.multi),
+  ggplot(comb[which(comb$variable == "readsPerKb"),], aes(x=log10(2*value.ave.nuc.multi + 2*value.ave.cyt.multi),
                                                      y=log10(2*value.ave.nuc.uniq + 2*value.ave.cyt.uniq),
                                                      color=cell)) +
     geom_point()+
@@ -51,7 +51,17 @@ plotMultiVsUniqReads <- function(){
     geom_abline(slope=1,intercept=0) +
     theme_bw() +
     facet_wrap(~cell)
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamCompare/reads-uniqVsMulti-byCell.png"),height=8,width=8)
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamCompare/readsPerKb-uniqVsMulti-byCell.png"),height=8,width=8)
+  ggplot(comb[which(comb$variable == "RPKM"),], aes(x=log10(2*value.ave.nuc.multi + 2*value.ave.cyt.multi),
+                                                    y=log10(2*value.ave.nuc.uniq + 2*value.ave.cyt.uniq),
+                                                    color=cell)) +
+    geom_point()+
+    ggtitle("RPKMfromBAM -> uniq vs. multi mapped reads\n")+
+    xlab("multi reads over cyt+nuc rep1+2")+
+    ylab("unique reads over cyt+nuc rep1+2")+
+    geom_abline(slope=1,intercept=0) +
+    theme_bw() 
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamCompare/uniqVsMulti-combined.png"),height=8,width=8)
   
   
   #comb.reads <- comb[which(comb$variable == "reads"),]
