@@ -142,7 +142,7 @@ generateRPKMFromBamFromSortedSam <- function(){
   #scpFile(file.local="~/sandbox/stIdxStar", dir.remote="~/bin/")
   df.comb$bamBai <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.bam.bai"))
  
-  cmd4 <- "java -jar -Xmx24g /home/aw30w/bin/bam2rpkm-0.06/bam2rpkm-0.06.jar -f /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn.gtf -i test.uniq.star_sort.bam --overlap xxOOxx -r exon -o test.uniq.star_sort.transByExon.gtf"
+  cmd4 <- "java -jar -Xmx24g /home/aw30w/bin/bam2rpkm-0.06/bam2rpkm-0.06.jar -f /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.gtf -i test.star_sort.bam --overlap xxOOxx -r exon -o test.uniq.star_sort.transByExon.gtf"
   o4 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd4,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn-uniq",filename)))))
   o4 <- as.character(unlist(sapply(seq_along(o4), function(i)gsub(x=o4[i],pattern="xxOOxx", replacement=df$overlapSize[i]))))
   

@@ -1,6 +1,14 @@
 
 
 
+bothRuns <- function(){
+  uniqOutfile=getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM.tab")
+  uniqReportFile = getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM-REPORT.tab")
+  
+  getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon(infile=uniqOutfile,reportFile=uniqReportFile)
+  getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon()
+}
+
 doit <- function(){
   processCellsMaxTransExpr_ByExon(suffix=".transByExon.gtf",transSuffix=".transFromExon.gtf")
   getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon()
@@ -210,7 +218,7 @@ getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon <- function(infile=getFullP
   
   #exportAsTable(file=getFullPath("/data/rpkmFromBamTopTransAllCells.tab"), df=df.together)
   df.together$gene_type <- df.together$region
-  df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "RPKM_80norm","RPKM","reads","concBySpikeIn","TPM")]
+  df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "RPKM_80norm","RPKM","reads","concBySpikeIn","TPM","readsPerKb")]
   
   df.rep.1 <- subset(df.abbrev, replicate == 1)
   df.rep.2 <- subset(df.abbrev, replicate == 2)

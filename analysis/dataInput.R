@@ -1051,7 +1051,7 @@ runRSEMonCytNuc <- function(){
   read1 <- file.path(rnaseqdir,df.comb$read1.filename)
   read2 <- file.path(rnaseqdir,df.comb$read2.filename)
   read1.fa <- gsub(x=read1,pattern=".gz",replacement="")
-  read2.fa <- gsub(x=read1,pattern=".gz",replacement="")
+  read2.fa <- gsub(x=read2,pattern=".gz",replacement="")
   
   rsemOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM",df.comb$bare)
   rpkmFromBamOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM","rpkmFromBam",df.comb$bare)
@@ -1063,7 +1063,9 @@ runRSEMonCytNuc <- function(){
   # perl /home/aw30w/bin/runTaskR301.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 2880 -Q long -t rsem
   #cat ~/bin/rsemReadMap | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem" -i "{}"
   
-  cmd8 <- "java -jar -Xmx24g /home/aw30w/bin/bam2rpkm-0.06/bam2rpkm-0.06.jar -f /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn.gtf -i test.transcript.sorted.bam -r exon -o target.exon.gtf"
+  cmd8 <- paste0("rm target.exon.gtf;;java -jar -Xmx24g /home/aw30w/bin/bam2rpkm-0.06/bam2rpkm-0.06.jar",
+                 " -f /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn.gtf" ,
+                  " -i test.transcript.sorted.bam -r exon -o target.exon.gtf")
   o8 <- as.character(unlist(sapply(rsemOutput, function(filename)gsub(x=cmd8,pattern="test", replacement=filename))))
   o8 <- as.character(unlist(sapply(seq_along(o8), function(i)gsub(x=o8[i],pattern="target", replacement=rpkmFromBamOutput[i]))))
   
@@ -1076,16 +1078,22 @@ runRSEMonCytNuc <- function(){
   
   #/project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19
   rsemOutput <- file.path(rnaseqdir,"rsem-hg19-gencodeV19",df.comb$bare)
-  o1 <- paste0("rsem-calculate-expression --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",rsemOutput )
+  o1 <- paste0("rsem-calculate-expression --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read1.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",rsemOutput )
   write(o1, file="~/sandbox/rsemReadMap2")
   scpFile(file.local="~/sandbox/rsemReadMap2", dir.remote="~/bin/")
   #cat ~/bin/rsemReadMap2 | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem2" -i "{}"
+
+  rsemOutput <- file.path(rnaseqdir,"rsem-hg19-gencodeV19",df.comb$bare)
+  o1 <- paste0("rsem-calculate-expression --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",rsemOutput )
+  write(o1, file="~/sandbox/rsemReadMap2")
+  scpFile(file.local="~/sandbox/rsemReadMap2", dir.remote="~/bin/")
+  #cat ~/bin/rsemReadMap2 | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem2_PE" -i "{}"
   
+  #rsem-prepare-reference --gtf /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.gtf /project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.spikeIn.fa --transcript-to-gene-map /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.transGene.tab  /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19/
   
   
 }
 
-#rsem-prepare-reference --gtf /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.gtf /project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.spikeIn.fa --transcript-to-gene-map /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.transGene.tab  /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19/
 
 
 
