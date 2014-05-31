@@ -1063,11 +1063,7 @@ checkDownloadedFastq <- function(){
             downloadCmd[which(fastqFound == FALSE)],gzipCmd[which(fastqFound == FALSE)])
   write(need, file="~/sandbox/getFastq")
   scpFile(file.local="~/sandbox/getFastq", dir.remote="~/bin/")
-                        
-
 }
-
-
 
 runRSEMonCytNuc <- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
@@ -1077,10 +1073,8 @@ runRSEMonCytNuc <- function(){
   read1 <- grep(df.fastq$filename,pattern="Rd1")
   read2 <- grep(df.fastq$filename,pattern="Rd2")
   
-  
   df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
   df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
-  
   
   # rsem-calculate-expression --paired-end wgEncodeCshlLongRnaSeqSknshraCellLongnonpolyaFastqRd1Rep1.fastq.gz wgEncodeCshlLongRnaSeqSknshraCellPapFastqRd2Rep1.fastq.gz /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ -p 8 --ci-memory 8G --samtools-sort-mem 8GB 
   read1 <- file.path(rnaseqdir,df.comb$read1.filename)
@@ -1090,7 +1084,6 @@ runRSEMonCytNuc <- function(){
   
   rsemOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM",df.comb$bare)
   rpkmFromBamOutput <- file.path(rnaseqdir, "starSpikeIn","RSEM","rpkmFromBam",df.comb$bare)
-  
   
   o1 <- paste0("gzip -d ",read1,";;gzip -d ",read2,";;rsem-calculate-expression --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ ",rsemOutput )
   write(o1, file="~/sandbox/rsemReadMap")
@@ -1106,7 +1099,7 @@ runRSEMonCytNuc <- function(){
   
   write(o8, file="~/sandbox/rpkm-tool")
   scpFile(file.local="~/sandbox/rpkm-tool", dir.remote="~/bin/")
-  # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool -c 5 -m 8192 -W 600 -Q short -t rpkmRSEM
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool -c 5 -m 8192 -W 600 -Q long -t rpkmRSEM
   fileOut <- paste0(rpkmFromBamOutput,".exon.gtf")
   gtfFound <- sapply(fileOut, hpc.file.exists)
   
@@ -1122,17 +1115,9 @@ runRSEMonCytNuc <- function(){
   o1 <- paste0("rsem-calculate-expression --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",rsemOutput )
   write(o1, file="~/sandbox/rsemReadMap2")
   scpFile(file.local="~/sandbox/rsemReadMap2", dir.remote="~/bin/")
-  #cat ~/bin/rsemReadMap2 | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem2_PE" -i "{}"
-  
+  #cat ~/bin/rsemReadMap2 | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem2_PE" -i "{}" 
   #rsem-prepare-reference --gtf /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.gtf /project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.spikeIn.fa --transcript-to-gene-map /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.transGene.tab  /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19/
-  
-  
-}
-
-
-
-
-
+  }
 generateStarBedops<- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
   df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
@@ -1141,10 +1126,8 @@ generateStarBedops<- function(){
   read1 <- grep(df.fastq$filename,pattern="Rd1")
   read2 <- grep(df.fastq$filename,pattern="Rd2")
   
-  
   df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
   df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
-  
   
   o <- genStarAlignCmdSpikeIN.paramFile(rd1=file.path(rnaseqdir,df.comb$read1.filename),
                                         rd2=file.path(rnaseqdir,df.comb$read2.filename),
@@ -1153,7 +1136,6 @@ generateStarBedops<- function(){
   scpFile(file.local="~/sandbox/runStar.sh", dir.remote="~/bin/")
   # cat ~/bin/runStar.sh | xargs -I{}  perl ~/bin/runJob.pl -c 16 -m 3072 -W 600 -Q short -t "runStar" -i "{}"
   df.comb$starAln <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star.samAligned.out.sam"))
-  
   
   cmd1 <- "samtools view -bS test.star.samAligned.out.sam -o test.star.bam;;samtools sort -m 171798691840 test.star.bam test.star_sort"
   o1 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd1,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
@@ -1176,16 +1158,12 @@ generateStarBedops<- function(){
   df.comb$bamBai <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.bam.bai"))
   # cat ~/bin/stIdxStar | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 4096 -W 600 -Q short -t bamIndexTest -i "{}"
   
-  
-  
   cmd4 <- "samtools view -h test.star_sort.bam -o test.star_sort.sam"
   o4 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd4,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
   write(o4, file="~/sandbox/sortBam2Sam")
   scpFile(file.local="~/sandbox/sortBam2Sam", dir.remote="~/bin/")
   df.comb$samSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.sam"))
   # catMissingLast.sh ~/bin/sortBam2Sam | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 8192 -W 600 -Q short -t sortBam2sam -i "{}"
-  
-  
   
   cmd5.1 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.bed > COUNT_FILE.multicov.allTrans.uniqReads"
   cmd5.2 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.singleTrans.bed > COUNT_FILE.multicov.singleTrans.uniqReads"
@@ -1216,8 +1194,6 @@ generateStarBedops<- function(){
   grace.df$counts <- counts
   exportAsTable(df=grace.df,file=getFullPath("data/multicovCountsGraceFeatures.tab"))
   
-  
-  
   cmd6.1 <- paste("cat /project/umw_zhiping_weng/wespisea/flux-capicitor/v19annotParamsNIST14 >> test.flux.params && echo STDOUT_FILE test.flux.out >> test.flux.params &&",
                   "echo STDERR_FILE test.flux.err >> test.flux.params && echo STATS_FILE test.flux.stats >> test.flux.params && echo COVERAGE_FILE test.flux.coverage ",
                   ">> test.flux.params")
@@ -1230,10 +1206,6 @@ generateStarBedops<- function(){
   write(o6, file="~/sandbox/fluxCap")
   scpFile(file.local="~/sandbox/fluxCap", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/fluxCap -c 24 -m 1024 -W 600 -Q short -t flux
-  
-  
-  
-  
   # /home/aw30w/bin/sjcount-master/sjcount -bam bam_file [-ssj junctions_output] [-ssc boundaries_output] [-log log_file]
   cmd7 <- paste0("/home/aw30w/bin/sjcount-master/sjcount  -quiet  -bam  xxTESTINPUTxx.star_sort.bam -ssj test.ssj -ssc test.scc -log test.log" )
   o7 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste0(cmd7),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn/ssjCount",filename)),
@@ -1242,12 +1214,7 @@ generateStarBedops<- function(){
   write(o7, file="~/sandbox/ssjcountRun")
   scpFile(file.local="~/sandbox/ssjcountRun", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/ssjcountRun -c 2 -m 8192 -W 600 -Q short -t ssj
-  
-  
-  
-  
   # rsem-calculate-expression --paired-end wgEncodeCshlLongRnaSeqSknshraCellLongnonpolyaFastqRd1Rep1.fastq.gz wgEncodeCshlLongRnaSeqSknshraCellPapFastqRd2Rep1.fastq.gz /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ -p 8 --ci-memory 8G --samtools-sort-mem 8GB 
-  
   
   cmd8 <- "java -jar -Xmx24g /home/aw30w/bin/bam2rpkm-0.06/bam2rpkm-0.06.jar -f /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.NIST14SpikeIn.gtf -i test.star_sort.bam -r transcript -o test.trans.gtf"
   o8 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd8,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
@@ -1264,14 +1231,6 @@ generateStarBedops<- function(){
   scpFile(file.local="~/sandbox/rpkm-tool-exon", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool-exon -c 5 -m 8192 -W 600 -Q short -t rpkm
   
-  
-  
-  
-  
-  
-  
-  
-  
   cmd5.1 <- "python reads-in-features.py  --sam=test.star_sort.sam --gff=/project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.pc.gtf  --label=mRNA --stranded=TRUE --outprefix=COUNT_FILE.mRNA."
   cmd5.2 <- "python reads-in-features.py  --sam=test.star_sort.sam --gff=/project/umw_zhiping_weng/wespisea/gtf/gencode.v19.long_noncoding_RNAs.gtf  --label=lnc --stranded=TRUE --outprefix=COUNT_FILE.lncRNA."
   o5 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste(cmd5.1,cmd5.2,sep="\n"),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)),
@@ -1280,12 +1239,6 @@ generateStarBedops<- function(){
   write(o5, file="~/sandbox/htseqCounts")
   scpFile(file.local="~/sandbox/htseqCounts", dir.remote="~/bin/")
   
-  
-  
-  
-  
-  
-  
   cmd3 <- "java -jar -Xmx70g /share/pkg/picard/1.96/SamFormatConverter.jar INPUT=test.star.samAligned.out.sam OUTPUT=test.starPic.bam MAX_RECORDS_IN_RAM=5000000"
   o3 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd3,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
   write(o3, file="~/sandbox/starBamPicard")
@@ -1293,21 +1246,13 @@ generateStarBedops<- function(){
   df.comb$picSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".starPic_bam"))
   
   
- "samtools sort -m 171798691840 test.star.sam test.star_sort"
-  
-  
-  
-  
+ x="samtools sort -m 171798691840 test.star.sam test.star_sort"
   o <- paste0(getBedopsIntersect(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),tag="star"))
   
   write(o, file="~/sandbox/starToBed.sh")
   # cat ~/bin/starToBed.sh | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 20480 -W 600 -Q short -t "star2Bed" -i "{}"
   
-  
-  
-  
-  o <- paste0(getBedopsIntersect(file.path(rnaseqdir,"segemehl",df.comb$bare),tag="seg"))
-  
+  o <- paste0(getBedopsIntersect(file.path(rnaseqdir,"segemehl",df.comb$bare),tag="seg"))  
   write(o, file="~/sandbox/segToBed.sh")
   #  cat ~/bin/segToBed.sh | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 20480 -W 600 -Q short -t "seg2Bed2" -i "{}"
   
@@ -1321,31 +1266,21 @@ generateStarBedops<- function(){
   o <- sortStarBed(file.path(rnaseqdir,"starSpikeIn",df.comb$bare))
   write(o, file="~/sandbox/starBedSort.sh")
   
-  
   o <- getBedopsIntersect(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),tag="star")
   write(o, file="~/sandbox/getStarCts.sh")
   # cat ~/bin/getStarCts.sh | xargs -I{}  perl ~/bin/runJob.pl -c 4 -m 20480 -W 600 -Q short -t "starCts" -i "{}"
   
-  
   notdone <- sapply(paste0(file.path(rnaseqdir,"starSpikeIn",df.comb$bare),".star_sort.bed"),function(x)hpc.file.exists(x))
-  o <- sortStarBed(file.path(rnaseqdir,"starSpikeIn",df.comb$bare))[which(notdone == FALSE)]
-  write(o, file="~/sandbox/starSortLongQ.sh")
+  o.runStar <- sortStarBed(file.path(rnaseqdir,"starSpikeIn",df.comb$bare))[which(notdone == FALSE)]
+  write(o.runStar, file="~/sandbox/starSortLongQ.sh")
   scpFile(file.local="~/sandbox/starSortLongQ.sh", dir.remote="~/bin/")
   # cat ~/bin/starSortLongQ.sh | xargs -I{}  perl ~/bin/runJob.pl -c 4 -m 20480 -W 6000 -Q long -t "longQstarBed" -i "{}"
-
-  
-  
 }
-
 # samtools view -bS test.seg.sam > test.seg.bam;;
 #   bedtools bamtobed -i test.seg.bam > test.seg.bed
 
-
 downloadCellDataLpa <- function(){
-  
-  
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
-  
   df.cytNuc.celltypes <- unique(subset(df, type=="fastq" & (localization == "nucleus" | localization == "cytosol"))[["cell"]])
   df.fastq <- subset(df, type == "fastq" & (localization == "cell") & (cell %in% df.cytNuc.celltypes))
   filenames <- c(df.cytNuc.restFastq$filename)
@@ -1357,7 +1292,6 @@ downloadCellDataLpa <- function(){
   len <- length(remote.file)
   split <- floor(len/2)
   
-  
   md <- paste0(paste0("wget --continue ", web.file[1:split], " -O ", remote.file[1:split] ," &\n",
                       "wget --continue ", web.file[(split+1):len], " -O ", remote.file[(split +1):len] ),collapse= "; \n")
   write(md, file="~/sandbox/wgetCellPapPam.sh")
@@ -1366,10 +1300,8 @@ downloadCellDataLpa <- function(){
   read1 <- grep(df.fastq$filename,pattern="Rd1")
   read2 <- grep(df.fastq$filename,pattern="Rd2")
   
-  
   df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
   df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
-  
   
   o <- genStarAlignCmdSpikeIN.paramFile(rd1=file.path(rnaseqdir,df.comb$read1.filename),
                                         rd2=file.path(rnaseqdir,df.comb$read2.filename),
@@ -1378,7 +1310,6 @@ downloadCellDataLpa <- function(){
   scpFile(file.local="~/sandbox/runStar.sh", dir.remote="~/bin/")
   # cat ~/bin/runStar.sh | xargs -I{}  perl ~/bin/runJob.pl -c 16 -m 3072 -W 600 -Q short -t "runStar" -i "{}"
   df.comb$starAln <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star.samAligned.out.sam"))
-  
   
   cmd1 <- "samtools view -bS test.star.samAligned.out.sam -o test.star.bam;;samtools sort -m 171798691840 test.star.bam test.star_sort"
   o1 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd1,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
@@ -1392,17 +1323,12 @@ downloadCellDataLpa <- function(){
   df.comb$bamBai <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.bam.bai"))
   # cat ~/bin/stIdxStar | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 4096 -W 600 -Q short -t bamIndexTest -i "{}"
   
-  
-  
   cmd4 <- "samtools view -h test.star_sort.bam -o test.star_sort.sam"
   o4 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd4,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn",filename)))))
   #write(o4, file="~/sandbox/sortBam2Sam")
   #scpFile(file.local="~/sandbox/sortBam2Sam", dir.remote="~/bin/")
   df.comb$samSort <- file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,".star_sort.sam"))
   # catMissingLast.sh ~/bin/sortBam2Sam | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 4 -m 8192 -W 600 -Q short -t sortBam2sam -i "{}"
-  
-  
-  
   
   cmd6.1 <- paste("cat /project/umw_zhiping_weng/wespisea/flux-capicitor/v19annotParamsNIST14 >> test.flux.params && echo STDOUT_FILE test.flux.out >> test.flux.params &&",
                   "echo STDERR_FILE test.flux.err >> test.flux.params && echo STATS_FILE test.flux.stats >> test.flux.params && echo COVERAGE_FILE test.flux.coverage ",
@@ -1417,9 +1343,6 @@ downloadCellDataLpa <- function(){
   #scpFile(file.local="~/sandbox/fluxCap", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/fluxCap -c 24 -m 1024 -W 600 -Q short -t flux
   
-  
-  
-  
   # /home/aw30w/bin/sjcount-master/sjcount -bam bam_file [-ssj junctions_output] [-ssc boundaries_output] [-log log_file]
   cmd7 <- paste0("/home/aw30w/bin/sjcount-master/sjcount3   -quiet  -bam  xxTESTINPUTxx.star_sort.bam -ssj test.ssj -ssc test.scc -log test.log" )
   o7 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=gsub(x=paste0(cmd7),pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn/ssjCount",filename)),
@@ -1428,13 +1351,10 @@ downloadCellDataLpa <- function(){
   write(o7, file="~/sandbox/ssjcountRun")
   scpFile(file.local="~/sandbox/ssjcountRun", dir.remote="~/bin/")
   
-  
   o.comb <- paste0(o1,";;",o3,";;",o4,";;",o6," &;;",o7)
   write(o.comb, file="~/sandbox/processStarAlign")
   scpFile(file.local="~/sandbox/processStarAlign", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/processStarAlign -c 26 -m 4096 -W 10:0 -Q short -t flux
-  
-
   
   cmd5.1 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.bed > COUNT_FILE.multicov.allTrans.uniqReads"
   cmd5.2 <- "bedtools multicov -split -s  -bams test.star_sort.bam -bed /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.intEx.lncPc.singleTrans.bed > COUNT_FILE.multicov.singleTrans.uniqReads"
@@ -1502,12 +1422,4 @@ compileStarLogFinalOut <- function(localDir = "/home/wespisea/data/starSpikeDat/
       system("~/sandbox/getStarInfo")
 
     }
-  
-}
-
-
-
-
-
-
-
+  }
