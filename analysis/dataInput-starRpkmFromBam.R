@@ -159,15 +159,15 @@ generateRPKMFromBamFromSortedSam <- function(){
   existFileout <- sapply(fileOut, hpc.file.exists)  
   outputTotal <- as.character(unlist(sapply(paste(o,o1,o3,sep=";;"), function(x)gsub(x=x,pattern="//",replacement="/"))))
   oNeed <- outputTotal[which(existsFileout == FALSE)]
-  write(outputTotal, file="~/sandbox/su_miss")
+  write(o[which(existFileout == FALSE)], file="~/sandbox/su_miss")
   scpFile(file.local="~/sandbox/su_miss", dir.remote="~/bin/")
-  # cat ~/bin/su_miss | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 16 -m 12500 -W 600 -Q short -t starUniqr -i "{}"
+  # cat ~/bin/su_miss | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 16 -m 12500 -W 600 -Q short -t su_miss -i "{}"
   
   
   
   cmd4 <- "java -jar -Xmx24g /home/aw30w/bin/bam2rpkm-0.06/bam2rpkm-0.06.jar -f /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.gtf -i test.star_sort.bam --overlap xxOOxx -r exon -o test.uniq.star_sort.transByExon.gtf"
   o4 <- as.character(unlist(sapply(df.comb$bare, function(filename)gsub(x=cmd4,pattern="test", replacement=file.path(rnaseqdir,"starSpikeIn-uniq",filename)))))
-  o4 <- as.character(unlist(sapply(seq_along(o4), function(i)gsub(x=o4[i],pattern="xxOOxx", replacement=df$overlapSize[i]))))
+  o4 <- as.character(unlist(sapply(seq_along(o4), function(i) gsub(x=o4[i],pattern="xxOOxx", replacement=df$overlapSize[i]))))
   fileOuto4 <-  file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,"uniq.star_sort.transByExon.gtf"))
   existFileout <- sapply(fileOut, hpc.file.exists)  
   
