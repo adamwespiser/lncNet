@@ -1,6 +1,4 @@
 
-filesTxtTab <<- "~/data/wgEncodeCshlLongRnaSeqFiles.tab"
-rnaseqdir <<- "/project/umw_zhiping_weng/wespisea/rna-seq/"
 
 genStarAlignCmdSpikeIN.paramFileUniq <- function(rd1,rd2,outfile){
   paramFile <- "/home/aw30w/log/params/parametersPolyRibo_AWmod.txt"
@@ -158,10 +156,17 @@ generateRPKMFromBamFromSortedSam <- function(){
   fileOut <-  file.path(rnaseqdir,"starSpikeIn-uniq",paste0(df.comb$bare,".star.samAligned.out.sam"))
   existFileout <- sapply(fileOut, hpc.file.exists)  
   outputTotal <- as.character(unlist(sapply(paste(o,o1,o3,sep=";;"), function(x)gsub(x=x,pattern="//",replacement="/"))))
-  oNeed <- outputTotal[which(existsFileout == FALSE)]
+  oNeed <- outputTotal[which(existFileout == FALSE)]
   write(o[which(existFileout == FALSE)], file="~/sandbox/su_miss")
   scpFile(file.local="~/sandbox/su_miss", dir.remote="~/bin/")
+  
   # cat ~/bin/su_miss | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 16 -m 12500 -W 600 -Q short -t su_miss -i "{}"
+  oRem <- as.character(unlist(sapply(paste(o1,o3,o4,sep=";;"), function(x)gsub(x=x,pattern="//",replacement="/"))))
+  write(oRem[which(existFileout == FALSE)], file="~/sandbox/su_missRem")
+  scpFile(file.local="~/sandbox/su_missRem", dir.remote="~/bin/")
+  # cat ~/bin/su_missRem | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 16 -m 12500 -W 600 -Q short -t su_missRem -i "{}"
+  
+  
   
   
   
@@ -171,13 +176,23 @@ generateRPKMFromBamFromSortedSam <- function(){
   fileOuto4 <-  file.path(rnaseqdir,"starSpikeIn",paste0(df.comb$bare,"uniq.star_sort.transByExon.gtf"))
   existFileout <- sapply(fileOut, hpc.file.exists)  
   
-  write(o4, file="~/sandbox/su_miss")
-  scpFile(file.local="~/sandbox/su_miss", dir.remote="~/bin/")
+  write(o4, file="~/sandbox/su_missGTF")
+  scpFile(file.local="~/sandbox/su_missGTF", dir.remote="~/bin/")
+  # cat ~/bin/su_missGTF | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 16 -m 12500 -W 600 -Q short -t su_missGTF -i "{}"
   
   
   
-  
-  
+  # for these -> no bam file -> cluster shut down? node killed?
+  failedOnce <- c("wgEncodeCshlLongRnaSeqSknshCytosolPapFastqRep3",
+  "wgEncodeCshlLongRnaSeqImr90NucleusPapFastqRep2",
+  "wgEncodeCshlLongRnaSeqImr90NucleusPapFastqRep1",
+  "wgEncodeCshlLongRnaSeqMcf7CytosolPapFastqRep4",
+  "wgEncodeCshlLongRnaSeqA549CytosolPapFastqRep4",
+  "wgEncodeCshlLongRnaSeqMcf7CytosolPapFastqRep3",
+  "wgEncodeCshlLongRnaSeqA549NucleusPapFastqRep3",
+  "wgEncodeCshlLongRnaSeqSknshNucleusPapFastqRep4",
+  "wgEncodeCshlLongRnaSeqSknshCytosolPapFastqRep4",
+  "wgEncodeCshlLongRnaSeqSknshCytosolPapFastqRep3")
   
   
   
