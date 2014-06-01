@@ -195,7 +195,13 @@ generateRPKMFromBamFromSortedSam <- function(){
   "wgEncodeCshlLongRnaSeqSknshCytosolPapFastqRep3")
   
   
-  
+  df.miss <- df.comb[which(df.comb$bare %in% failedOnce),]
+  outputTotal <- as.character(unlist(sapply(paste(o,o1,o3,o4,sep=";;"), function(x)gsub(x=x,pattern="//",replacement="/"))))
+  # 183840
+  o.mist <- outputTotal[which(df.comb$bare %in% failedOnce)]
+  write(outputTotal, file="~/sandbox/sMiss")
+  scpFile(file.local="~/sandbox/sMiss", dir.remote="~/bin/")
+  # cat ~/bin/sMiss | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 16 -m 12500 -W 600 -Q short -t sMISS -i "{}"
   
   
 }
