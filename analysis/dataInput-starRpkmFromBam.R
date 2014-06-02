@@ -195,13 +195,104 @@ generateRPKMFromBamFromSortedSam <- function(){
   "wgEncodeCshlLongRnaSeqSknshCytosolPapFastqRep3")
   
   
+  oClean <- paste0("rm ",file.path(rnaseqdir,"starSpikeIn-uniq",failedOnce),"{.star_sort.bam,.uniq.star_sort.transByExon.gtf,.star_sort.bam.bai} \n")
+  cat(oClean)
+  
   df.miss <- df.comb[which(df.comb$bare %in% failedOnce),]
-  outputTotal <- as.character(unlist(sapply(paste(o,o1,o3,o4,sep=";;"), function(x)gsub(x=x,pattern="//",replacement="/"))))
+  outputTotal2 <- as.character(unlist(sapply(paste(o1,o3,o4,sep=";;"), function(x)gsub(x=x,pattern="//",replacement="/"))))
   # 183840
-  o.mist <- outputTotal[which(df.comb$bare %in% failedOnce)]
-  write(outputTotal, file="~/sandbox/sMiss")
+  o.mist <- outputTotal2[which(df.comb$bare %in% failedOnce)]
+  write(o.mist, file="~/sandbox/sMiss")
   scpFile(file.local="~/sandbox/sMiss", dir.remote="~/bin/")
   # cat ~/bin/sMiss | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 16 -m 12500 -W 600 -Q short -t sMISS -i "{}"
+}
+
+
+clusterDir <- "/project/umw_zhiping_weng/wespisea/rna-seq/starSpikeIn-uniq/"
+zlabDir <- "/home/wespisea/data/starSpike-Unique/"
+fileEnding <- ".star.samLog.final.out"
+
+
+doitAnalysis <- function(){
+  clusterDir <- "/project/umw_zhiping_weng/wespisea/rna-seq/starSpikeIn-uniq/"
+  zlabDir <- "/home/wespisea/data/starSpike-Unique/"
+  fileEnding <- ".star.samLog.final.out"
+  copyFilesToZlab(zlabDir,clusterDir, fileEnding)
+  dat <- procAnalaysisFile(zlabDir)
+  dat$Exp<- paste0(dat$cell,".",
+                        ifelse(dat$rnaExtract == "longNonPolyA","LNPA","lpa"),".",
+                        dat$replicate,".",
+                        ifelse(dat$localization=="cytosol","cyt","NUC" ) )
   
+  datShort <- dat[which(dat$V1 %in% c("                   Uniquely mapped reads number ","                          Number of input reads ","                        Uniquely mapped reads % ")),]
+  ggplot(datShort,aes(x=Exp,y=numeric2))+geom_bar(stat="identity")+
+    facet_grid(V1~.,scale="free")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  
+  
+  datTot <-  dat[which(dat$V1 %in% c("                          Number of input reads ")),]
+  datUniqMap <-  dat[which(dat$V1 %in% c("                   Uniquely mapped reads number ")),]
+  datM <- merge(datTot,datUniqMap,by="Exp",suffix=c(".tot",".uniq"))
+  datM$notMapped <- with(datM,numeric2.tot-numeric2.uniq )  
+  datM$uniqMapped <- datM$numeric2.uniq
+  datPlot <- melt(datM[c("Exp","notMapped","uniqMapped")],id.var="Exp")
+  
+  ggplot(datPlot, aes(x=Exp,y=value,fill=variable))+geom_bar(stat="identity")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1,size=13)) +
+    ylab("Number of Reads") + xlab("Mapped Sequncing Run")
   
 }
+
+copyFilesToZlab <- function(zlabDir,clusterDir, fileEnding){
+  if(!file.exists(zlabDir)){
+    dir.create(zlabDir)
+  }
+  o1 <- paste0("scp aw30w@ghpcc06.umassrc.org:",clusterDir,"*",fileEnding," ",zlabDir)
+  system(o1)
+}
+
+
+readInReportFile <- function(tag="tag",reportFile = "/home/wespisea/data/starSpike-Unique/wgEncodeCshlLongRnaSeqSknshNucleusPapFastqRep4.star.samLog.final.out"){
+  r <- read.csv(file=reportFile,sep="|",header=FALSE,stringsAsFactors=FALSE)
+  suppressWarnings(r$numeric2 <- as.numeric(gsub(gsub(r[,2],pattern="\t",replacement=""),pattern="%",replacement="")))
+  rVal <- r[!is.na(r$numeric2),]
+  rVal
+  
+}
+
+
+procAnalaysisFile <- function(zlabDir,fileEnding=".star.samLog.final.out"){
+  
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+    
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  df.comb$reportFile <- paste0(zlabDir,"/",df.comb$bare,fileEnding) 
+  
+  df.together <- data.frame()
+  for(i in seq_along(df.comb$bare)){
+    if(file.exists(df.comb$reportFile[i])){
+    localRep <- readInReportFile(tag=df.comb$bare[i],reportFile = df.comb$reportFile[i])
+    localRep$cell <- df.comb$read1.cell[i]
+    localRep$rnaExtract <- df.comb$read1.rnaExtract[i]
+    localRep$replicate <- df.comb$read1.replicate[i]
+    localRep$localization <- df.comb$read1.localization[i]
+    df.together <- rbind(localRep,df.together)
+    }
+  }
+  df.together
+}
+
+
+getMappedReport <- function(){
+  dat <- procAnalaysisFile(zlabDir)
+  
+}
+
+
+
+
