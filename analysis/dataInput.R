@@ -1120,11 +1120,13 @@ runRSEMonCytNuc <- function(){
   
   rsemOutputsrt <- file.path(rnaseqdir,"rsem-hg19-gencodeV19",df.comb$bare[c(which(df.comb$read1.rnaExtract == "longPolyA"),which(df.comb$read1.rnaExtract == "longNonPolyA"))])
   rsemFileExists<- sapply(paste0(rsemOutputsrt,"*genes.results"),  hpc.file.exists)
-  rsemClean <- paste("rm -rf",paste0(rsemOutputsrt,"*"))[which(FALSE == rsemFileExists)]
+  rsemClean <- paste("rm -rf",paste0(rsemOutputsrt,"*\n"))[which(FALSE == rsemFileExists)]
+  cat(rsemClean)
   
-  
-  o1 <- paste0("rsem-calculate-expression --num-threads 8 --ci-memory 61440 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",rsemOutputsrt )
-  write(o1[which(FALSE == rsemFileExists)], file="~/sandbox/rsemReadMap3")
+  oTryAgain <- paste0("rsem-calculate-expression --num-threads 8 --ci-memory 61440 --output-genome-bam --paired-end ", 
+               read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
+               rsemOutputsrt )
+  write(oTryAgain[which(FALSE == rsemFileExists)], file="~/sandbox/rsemReadMap3")
   scpFile(file.local="~/sandbox/rsemReadMap3", dir.remote="~/bin/")
   #cat ~/bin/rsemReadMap3 | xargs -I{}  perl ~/bin/runJobR301.pl -c 10 -m 8192 -W 10080 -Q long -t "rsem3_PE" -i "{}" 
   
