@@ -1131,6 +1131,35 @@ runRSEMonCytNuc <- function(){
   #cat ~/bin/rsemReadMap3 | xargs -I{}  perl ~/bin/runJobR301.pl -c 10 -m 8192 -W 10080 -Q long -t "rsem3_PE" -i "{}" 
   
 
+  ####################
+  #
+  #         STRANDED 
+  #
+  
+  
+  
+  rsemOutputStrand <- file.path(rnaseqdir,"rsem-hg19-gencodeV19-stranded",
+                                df.comb$bare[c(which(df.comb$read1.rnaExtract == "longPolyA"),which(df.comb$read1.rnaExtract == "longNonPolyA"))])
+  oStrand <- paste0("rsem-calculate-expression --strand-specific --num-threads 8 --ci-memory 61440 --output-genome-bam --paired-end ", 
+                      read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
+                    rsemOutputStrand )
+  write(oStrand, file="~/sandbox/rsemReadMap4")
+  scpFile(file.local="~/sandbox/rsemReadMap4", dir.remote="~/bin/")
+  #cat ~/bin/rsemReadMap4 | xargs -I{}  perl ~/bin/runJobR301.pl -c 10 -m 8192 -W 10080 -Q long -t "rsemStr" -i "{}" 
+  
+  
+  rsemFileExistsStrand <- sapply(paste0(rsemOutputStrand,"*genes.results"),  hpc.file.exists)
+  rsemCleanStrand <- paste("rm -rf",paste0(rsemOutputStrand,"*\n"))[which(FALSE == rsemFileExists)]
+  cat(rsemCleanStrand)
+  
+  oTryAgainStrand <- paste0("rsem-calculate-expression --num-threads 8 --ci-memory 61440 --output-genome-bam --paired-end ", 
+                      read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
+                            rsemOutputStrand )
+  write(oTryAgainStrand[which(FALSE == rsemFileExistsStrand)], file="~/sandbox/rsemReadMap5")
+  scpFile(file.local="~/sandbox/rsemReadMap5", dir.remote="~/bin/")
+  #cat ~/bin/rsemReadMap5 | xargs -I{}  perl ~/bin/runJobR301.pl -c 10 -m 8192 -W 10080 -Q long -t "rsemStr_again" -i "{}" 
+  
+  
 }
 generateStarBedops<- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
