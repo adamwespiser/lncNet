@@ -2,10 +2,13 @@
 
 
 doitVersion2 <- function(){
-  v2.infile =  getFullPath("/data/rsemCapData-v2-lpa-proc.tab")
+  v2.infile = getFullPath("/data/rsemCapData-v2-lpa-proc.tab")
   v2.outdir = getFullPath("plots/rnaExpr/mappedReads/RSEM-version2/")
   plotDifferenceBetweenRepsRSEM(infile=v2.infile,outdir=v2.outdir)
   plotRSEMcytFrac(infile=v2.infile,outdir=v2.outdir)
+  
+  plotRSEMreadDistro(inFile=getFullPath("/data/rsemCapData-v2-readDistro.tab"),
+                    outdir=getFullPath("plots/rnaExpr/mappedReads/RSEM-version2/readDistro/"))
 }
 
 
@@ -186,7 +189,7 @@ plotReadDistributionRSEM <- function(outdir=getFullPath("plots/rnaExpr/mappedRea
   #df.cytNuc <- df.cytNuc[which(df.cytNuc$cell == "K562" & df.cytNuc$localization == "cytosol"),]
   #exportAsTable(file=getFullPath("/data/fluxCapData-K562-lpa-proc.tab"), df=df.cytNuc)
   df.cytNuc.total <- read.csv(file=file,sep="\t")
-  if(!file.exists(saveDir)){dir.create(saveDir)}
+  #if(!file.exists(saveDir)){dir.create(saveDir)}
   
   
   a.df <- as.data.frame(expand.grid(cell=unique(df.cytNuc.total$cell),localization=unique(df.cytNuc.total$localization)))
@@ -260,9 +263,9 @@ plotReadDistributionRSEM <- function(outdir=getFullPath("plots/rnaExpr/mappedRea
 }
 
 plotRSEMcytFrac <- function(infile=getFullPath("/data/rsemCapData-lpa-proc.tab"),
-                            outdir=getFullPath("plots/rnaExpr/mappedReads/RSEM/")){
+                            outdir=getFullPath("/plots/rnaExpr/mappedReads/RSEM/")){
   
-  if(!file.exists(outdir)){dir.create(outdir,path=TRUE)}
+  if(!file.exists(outdir)){dir.create(outdir,recursive=TRUE)}
   stopifnot(file.exists(infile))
   
   df.cytNuc <- read.csv(file=infile, stringsAsFactors=FALSE, sep ="\t")
@@ -326,6 +329,99 @@ plotRSEMcytFrac <- function(infile=getFullPath("/data/rsemCapData-lpa-proc.tab")
   
 }
 
-
+plotRSEMreadDistro <- function(inFile=getFullPath("/data/rsemCapData-v2-readDistro.tab"),
+                               outdir=getFullPath("plots/rnaExpr/mappedReads/RSEM-version2/readDistro/")){
+  
+  if(!file.exists(outdir)){dir.create(outdir,recursive=TRUE)}
+  rdCnt <- read.csv(file=inFile, stringsAsFactors=FALSE, sep ="\t")
+  rdCnt$rep <- ifelse(rdCnt$replicate > 2, rdCnt$replicate - 2, rdCnt$replicate)
+  rdCnt$readCount <- rdCnt$count
+  
+  for(rna in c("longPolyA", "longNonPolyA")){
+    for(loc in c("cytosol","nucleus")){
+      base = paste0(outdir,rna,"-","loc","-")
+      localTitle = paste("RSEM Read Mapping Distribution\n",rna,loc,"\nFacet by Replicate,Celltype\nmultiplicity=genome aligns per read")
+     
+      ggplot(rdCnt[which(rdCnt$rnaExtract == rna & rdCnt$localization == loc ),], 
+             aes(x=multiplicity,y=count)) + geom_line() + geom_point()+ 
+        facet_grid(cell~rep) + theme_bw()+
+        ggtitle(localTitle)
+      ggsave(paste0(base,"readDistro.pdf"), height=12,width=5)
+      
+      ggplot(rdCnt[which(rdCnt$rnaExtract == rna & rdCnt$localization == loc ),], 
+             aes(x=multiplicity,y=count)) + geom_line() + geom_point()+ 
+        facet_grid(cell~rep) + theme_bw()
+      ggtitle(localTitle) + xlim(0,20)
+      ggsave(paste0(base,"readDistro-zoom.pdf"), height=12,width=5)
+      
+      
+      ggplot(rdCnt[which(rdCnt$rnaExtract == rna & rdCnt$localization == loc ),], 
+             aes(x=log10(multiplicity),y=count)) + geom_line() + geom_point()+ 
+        facet_grid(cell~rep) + theme_bw() +
+      ggtitle(localTitle) 
+      ggsave(paste0(base,"readDistro-logMult.pdf"), height=12,width=5)
+      
+      ggplot(rdCnt[which(rdCnt$rnaExtract == rna & rdCnt$localization == loc ),], 
+             aes(x=log10(multiplicity),y=log10(count))) + geom_line() + geom_point()+ 
+        facet_grid(cell~rep) + theme_bw() +
+      ggtitle(localTitle) 
+      ggsave(paste0(base,"readDistro-logMultLogCount.pdf"), height=12,width=5)
+      
+      ggplot(rdCnt[which(rdCnt$rnaExtract == rna & rdCnt$localization == loc ),], 
+             aes(x=multiplicity,y=log10(count))) + geom_line() + geom_point()+ 
+        facet_grid(cell~rep) + theme_bw() +
+        ggtitle(localTitle) 
+      ggsave(paste0(base,"readDistro-LogCount.pdf"), height=12,width=5)
+    }  
+    
+  }
+  
+  
+  summ <- ddply(rdCnt, .(Exp),summarise,notMapped=mean(notMapped),mapped=mean(mapped),rnaExtract=rnaExtract[1])
+  ggplot(melt(summ,id.var="Exp"), aes(x=Exp,y=value,fill=variable)) + 
+    geom_bar(stat="identity")+
+    ggtitle("RSEM reads mapped")+
+    xlab("RNA sequencing Expr.") + ylab("Reads Mapped")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    ggtitle("RSEM: Reads mapped " )
+  ggsave(paste0(outdir,"readMap-Count.pdf"), height=12,width=5)
+  
+  ggplot(summ, aes(x=Exp,y=mapped)) + 
+    geom_bar(stat="identity")+
+    ggtitle("RSEM reads mapped")+
+    xlab("RNA sequencing Expr.") + ylab("Reads Mapped")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    ggtitle("RSEM: Reads mapped ")+
+    geom_abline(slope=0,intercept=20*(10^6))
+  ggsave(paste0(outdir,"readMap-mappedOnly.pdf"), height=5,width=12)
+  
+  ggplot(summ, aes(x=Exp,y=mapped)) + 
+    geom_bar(stat="identity")+
+    ggtitle("RSEM reads mapped")+
+    xlab("RNA sequencing Expr.") + ylab("Reads Mapped")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    ggtitle("RSEM: Reads mapped ")+
+    geom_abline(slope=0,intercept=20*(10^6))+
+    facet_grid(rnaExtract~.)
+  ggsave(paste0(outdir,"readMap-mappedOnly-splitByPolyA.pdf"), height=6,width=12)
+  
+  ggplot(summ, aes(x=Exp,y=100*mapped/(mapped +notMapped))) + 
+    geom_bar(stat="identity")+
+    ggtitle("RSEM reads mapped")+
+    xlab("RNA sequencing Expr.") + ylab("% Reads mapped")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    ggtitle("RSEM: Reads mapped ")+
+    ylim(0,100) +
+    facet_grid(rnaExtract~.)
+  ggsave(paste0(outdir,"readMap-Percent-splitByPolyA.pdf"), height=6,width=12)
+  
+  
+  
+  
+  ggplot(rdCnt[which(rdCnt$rnaExtract == rna & rdCnt$localization == loc ),], 
+         aes(x=multiplicity,y=count)) + geom_line() + geom_point()+ 
+    facet_grid(cell~rep) + theme_bw()
+  
+}
 
 
