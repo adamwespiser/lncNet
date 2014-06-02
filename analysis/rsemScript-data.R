@@ -5,6 +5,15 @@ ghpc <<- "aw30w@ghpcc06.umassrc.org"
 lnc.v19.list <<- "/home/wespisea/data/gtf//gencode.v19.long_noncoding_RNAs.geneList"
 pc.v19.list <<- "/home/wespisea/data/gtf//gencode.v19.annotation.pc.geneList"
 
+
+
+RSEM_remap_doit <- function(){
+  getDataTotalReadsBtwnReps_RSEM( reportFile=getFullPath("/data/rsemCapData-lpa-proc-REPORT.tab"),
+                                  localDir = "/home/wespisea/data/RSEM-2/",
+                                  remoteDir = file.path(rnaseqdir,"/rsem-hg19-gencodeV19"),
+                                  outFile = getFullPath("/data/rsemCapData-v2-lpa-proc.tab"))  
+}
+
 applyPseudoValByVar2 <- function(value,var){
   qFun <- function(x){
     x <- x[which(x > 0)]
@@ -17,7 +26,13 @@ applyPseudoValByVar2 <- function(value,var){
 getRSEMDataForOneCell <- function( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",
                                    localDir = "/home/wespisea/data/flux/",
                                    remoteDir = file.path(rnaseqdir,"starSpikeIn/flux-capacitorNIST14"),
-                                   getFile=FALSE){
+                                   getFile=FALSE,
+                                   suffix=".genes.results"){
+ 
+  if(!file.exists(localDir)){
+    dir.create(localDir)
+  }
+  
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
   df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol"))
   read1 <- grep(df.fastq$filename,pattern="Rd1")
@@ -26,15 +41,15 @@ getRSEMDataForOneCell <- function( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFil
   
   df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
   df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
-  df.comb$remote <- paste0(remoteDir,"/",df.comb$bare,".flux.output"))
+  df.comb$remote <- paste0(remoteDir,"/",df.comb$bare,suffix)
   
   if(TRUE == getFile){
     o1 <- paste0("scp aw30w@ghpcc06.umassrc.org:",df.comb$remote, "  ",localDir)
     write(o1,file="~/sandbox/rsemFetch")
     system("chmod u+x ~/sandbox/rsemFetch")
-    system("~/sandbox/rsemFetch")
+    suppressWarnings(system("~/sandbox/rsemFetch"))
     
-}
+  }
   df.comb$rsemFile <- paste0(localDir,df.comb$bare,".genes.results")
   df.comb <- df.comb[c("read1.localization", "read1.cell", "read1.rnaExtract","read2.replicate" ,"rsemFile", "bare")]
   colnames(df.comb) <- c("localization", "cell", "rnaExtract","replicate" ,"rsemFile", "bare")
@@ -62,11 +77,12 @@ readInRSEMGtfParsed <- function(file="/home/wespisea/data/RSEM/wgEncodeCshlLongR
 getTranscriptData_RSEM <- function(celltype,rnaExtract,cellMissing=c("A549","IMR90"),
                                    localDir = "/home/wespisea/data/flux/",
                                    remoteDir = file.path(rnaseqdir,"starSpikeIn/flux-capacitorNIST14")){
- 
+  
   annot.df <- getRSEMDataForOneCell(filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",
                                     localDir = localDir,
                                     remoteDir = remoteDir,
                                     getFile=TRUE)
+  
   if (!missing(celltype)){
     print("gathering all cell types")
     annot.df <- annot.df[which(annot.df$cell == celltype),]
@@ -74,16 +90,22 @@ getTranscriptData_RSEM <- function(celltype,rnaExtract,cellMissing=c("A549","IMR
   if(!missing(rnaExtract)){
     annot.df <- annot.df[which(annot.df$rnaExtract == rnaExtract),]
   }
-  annot.df <- annot.df[-which(annot.df$cell %in% cellMissing),]
+ # annot.df <- annot.df[-which(annot.df$cell %in% cellMissing),]
+  annot.df$fileExists <- sapply(annot.df$rsemFile,file.exists)
+  annot.df$cellExtract = with(annot.df, paste0(cell,rnaExtract))
+  counts <- ddply(annot.df, .(cellExtract), summarise, sum(fileExists))
+  cellExtractFound <- counts[which(counts[,2] == 4),"cellExtract"]
+  found.df <- annot.df[which(annot.df$cellExtract %in% cellExtractFound),]
+  
   
   df.together <- data.frame()
-  for(i in seq_along(annot.df$rsemFile)){
-    print(paste("finding data for -> ", annot.df$cell[i]))
-    df.local <- readInRSEMGtfParsed(file=annot.df$rsemFile[i])
-    df.local$cell <- annot.df$cell[i]
-    df.local$localization <- annot.df$localization[i]
-    df.local$rnaExtract <- annot.df$rnaExtract[i]
-    df.local$replicate <- ifelse(annot.df$replicate[i] > 2, annot.df$replicate[i] -2, annot.df$replicate[i])
+  for(i in seq_along(found.df$rsemFile)){
+    print(paste("finding data for -> ", found.df$cell[i]))
+    df.local <- readInRSEMGtfParsed(file=found.df$rsemFile[i])
+    df.local$cell <- found.df$cell[i]
+    df.local$localization <- found.df$localization[i]
+    df.local$rnaExtract <- found.df$rnaExtract[i]
+    df.local$replicate <- ifelse(found.df$replicate[i] > 2, found.df$replicate[i] -2, found.df$replicate[i])
     if (i == 1){
       df.together <- df.local
     } else{
@@ -97,11 +119,11 @@ getDataTotalReadsBtwnReps_RSEM <- function(reportFile=getFullPath("/data/rsemCap
                                            localDir = "/home/wespisea/data/flux/",
                                            remoteDir = file.path(rnaseqdir,"starSpikeIn/flux-capacitorNIST14"),
                                            outFile = getFullPath("/data/rsemCapData-lpa-proc.tab")){
+  
   df.together <- getTranscriptData_RSEM( rnaExtract="longPolyA",
-                                         cellMissing=c("A549","IMR90"),
-                                          localDir = localDir,
-                                          remoteDir = remoteDir))
-   
+                                         localDir = localDir,
+                                         remoteDir = remoteDir)
+  print("got df.together") 
   report.df  <- as.data.frame(group_by(df.together,cell,localization,replicate) %.%
                                 summarise(length(gene_id),
                                           mean(TPM),
@@ -118,7 +140,7 @@ getDataTotalReadsBtwnReps_RSEM <- function(reportFile=getFullPath("/data/rsemCap
   
   #  group_by(df.together, cell, localization,rnaExtract,replicate) %.% summarise(mean(RPKM_80norm/transTotalRPKM, na.rm=TRUE))
   
-  exportAsTable(file=getFullPath("/data/rsemCapDataAllCells.tab"), df=df.together)
+  exportAsTable(file=paste0(outFile,".all"), df=df.together)
   df.together$gene_type <- df.together$region
   df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "isSpikeIn", "FPKM_80norm", "TPM","FPKM")]
   
@@ -178,14 +200,10 @@ getDataTotalReadsBtwnReps_RSEM <- function(reportFile=getFullPath("/data/rsemCap
   df.nuc$value.ave <- (df.nuc$value.rep1 + df.nuc$value.rep2)/2
   
   
-df.cytNuc <- merge(df.cyt,df.nuc,by=c("gene_id","cell","variable"),suffixes=c(".cyt",".nuc"))
-df.cytNuc.rbind <- rbind(df.cyt,df.nuc)
-
-
-
-exportAsTable(file=paste0(outfile,".merge"), df=df.cytNuc)
-
-
+  df.cytNuc <- merge(df.cyt,df.nuc,by=c("gene_id","cell","variable"),suffixes=c(".cyt",".nuc"))
+  df.cytNuc.rbind <- rbind(df.cyt,df.nuc)
+  
+  exportAsTable(file=paste0(outfile,".merge"), df=df.cytNuc)
   exportAsTable(file=outfile, df=df.cytNuc.rbind)
   
 }

@@ -241,6 +241,14 @@ doitAnalysis <- function(){
     ggtitle("STAR: Reads mapped uniquely or not at all" )
   ggsave(file=getFullPath("plots/rnaExpr/mappedReads/compareMethods/STAR-PercentMappedReads-facetByMapping-byExp.pdf"),height=6,width=12)
   
+  ggplot( dat[which(dat$V1 %in% c("                   Uniquely mapped reads number ")),],
+          aes(x=Exp,y=numeric2))+geom_bar(stat="identity")+
+    xlab("RNA sequencing Expr.") + ylab("# Reads Mapped Uniquely")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    ggtitle("STAR: Reads mapped uniquely or not at all\nblue line = 20 million reads" ) + 
+    geom_abline(slope=0,intercept=20*10^6,color="blue") 
+    
+  ggsave(file=getFullPath("plots/rnaExpr/mappedReads/compareMethods/STAR-numberMappedReads-byExp.pdf"),height=6,width=12)
   
   
   

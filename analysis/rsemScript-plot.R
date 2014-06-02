@@ -1,12 +1,21 @@
 
 
 
+doitVersion2 <- function(){
+  v2.infile =  getFullPath("/data/rsemCapData-v2-lpa-proc.tab")
+  v2.outdir = getFullPath("plots/rnaExpr/mappedReads/RSEM-version2/")
+  plotDifferenceBetweenRepsRSEM(infile=v2.infile,outdir=v2.outdir)
+  plotRSEMcytFrac(infile=v2.infile,outdir=v2.outdir)
+}
 
 
-
-plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lpa-proc.tab") )  {
+plotDifferenceBetweenRepsRSEM <- function(infile=getFullPath("/data/rsemCapData-lpa-proc.tab"),
+                                          outdir=getFullPath("plots/rnaExpr/mappedReads/RSEM/"))  {
   
-  df.cytNuc <- read.csv(file=file, stringsAsFactors=FALSE, sep ="\t")
+  stopifnot(file.exists(infile))
+  if(!file.exists(outdir)){dir.create(outdir,path=TRUE)}
+  
+  df.cytNuc <- read.csv(file=infile, stringsAsFactors=FALSE, sep ="\t")
   #df.cytNuc.fpkmSpike[which(df.cytNuc.fpkmSpike$gene_id %in% pc),"region"] <- "mRNA"
   #df.cytNuc.fpkmSpike[which(df.cytNuc.fpkmSpike$gene_id %in% lnc),"region"] <- "lncRNA"
   
@@ -26,20 +35,20 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RSEM\nTPM \nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("TPM. rep1") + ylab("TPM rep2")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/tpm-vsReps.png"), height=12,width=5)
+  ggsave(paste0(outdir,"tpm-vsReps.png"), height=12,width=5)
   
   
   ggplot(df.cytNuc.fpkm80, aes(x=value.rep1,y=value.rep2,color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RSEM\nFPKM normalized by sum of middle 80 In\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("FPKM 80 norm. rep1") + ylab("FPKM 80 norm. rep2")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/fpkm80-vsReps.png"), height=12,width=5)
+  ggsave(paste0(outdir,"fpkm80-vsReps.png"), height=12,width=5)
   
   ggplot(df.cytNuc.fpkm, aes(x=value.rep1,y=value.rep2,color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RSEM\nFPKM\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("FPKM rep1") + ylab("FPKM rep2")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/fpkm-vsReps.png"), height=12,width=5)
+  ggsave(paste0(outdir,"fpkm-vsReps.png"), height=12,width=5)
   
   
   # rep vs. rep LOG
@@ -47,60 +56,60 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RSEM\nTPM n\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("TPM rep1") + ylab("TPM rep2")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/tpm-log-vsReps.png"), height=12,width=5)
+  ggsave(paste0(outdir,"tpm-log-vsReps.png"), height=12,width=5)
   
-    
+  
   ggplot(df.cytNuc.fpkm80, aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RSEM\nFPKM normalized by sum of middle 80 In\nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("FPKM 80 norm. rep1") + ylab("FPKM 80 norm. rep2")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/fpkm80-log-vsReps.png"), height=12,width=5)
+  ggsave(paste0(outdir,"fpkm80-log-vsReps.png"), height=12,width=5)
   
   ggplot(df.cytNuc.fpkm, aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("RSEM\nFPKM \nLongPolyA only")+ 
     geom_abline(slope=1,intercept=0)+ xlab("FPKM rep1") + ylab("FPKM rep2")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/fpkm-log-vsReps.png"), height=12,width=5)
+  ggsave(paste0(outdir,"fpkm-log-vsReps.png"), height=12,width=5)
   
   
   # Plot cutFraction
-    
+  
   
   
   
   
   #mRNA  only 
-#   ggplot(df.cytNuc.fpkmSpike[which(df.cytNuc.fpkmSpike$region == "mRNA"),], 
-#          aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + 
-#     geom_point() + 
-#     facet_grid(cell~localization,scale="free") + thisTheme +
-#     ggtitle("RSEM\nFPKM normalized by Spike In\nLongPolyA only\nmRNA only")+ 
-#     geom_abline(slope=1,intercept=0)+ 
-#     xlab("RPKM spike norm.") + ylab("RPKM spike norm")
-#   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/rpkmSpikeIn-mRNAOnly-log-vsReps.png"), height=12,width=5)
-#   
-#   ggplot(df.cytNuc.fpkm[which(df.cytNuc.fpkm$region == "mRNA"),],
-#          aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
-#     facet_grid(cell~localization,scale="free") + thisTheme +
-#     ggtitle("RSEM\nRPKM of Spike Ins\nmRNA only\nLongPolyA only")+ 
-#     geom_abline(slope=1,intercept=0)+ xlab("RPKM") + ylab("RPKM ")
-#   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/rpkm-mRNAOnly-log-vsReps.png"), height=12,width=5)
-#   
-#   #lncRNA
-#   ggplot(df.cytNuc.fpkmSpike[which(df.cytNuc.fpkmSpike$region == "lncRNA"),],
-#          aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
-#     facet_grid(cell~localization,scale="free") + thisTheme +
-#     ggtitle("RSEM\nRPKM normalized by Spike In\nlncRNA only\nLongPolyA only")+ 
-#     geom_abline(slope=1,intercept=0)+ xlab("RPKM spike norm.") + ylab("RPKM spike norm")
-#   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/rpkmSpikeIn-lncOnly-log-vsReps.png"), height=12,width=5)
-#   
-#   ggplot(df.cytNuc.fpkm[which(df.cytNuc.fpkm$region == "lncRNA"),], 
-#          aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
-#     facet_grid(cell~localization,scale="free") + thisTheme +
-#     ggtitle("RSEM\nRPKM of Spike Ins\nlncRNA only\nLongPolyA only")+ 
-#     geom_abline(slope=1,intercept=0)+ xlab("RPKM") + ylab("RPKM ")
-#   ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/rpkm-lncOnly-log-vsReps.png"), height=12,width=5)
-#   
+  #   ggplot(df.cytNuc.fpkmSpike[which(df.cytNuc.fpkmSpike$region == "mRNA"),], 
+  #          aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + 
+  #     geom_point() + 
+  #     facet_grid(cell~localization,scale="free") + thisTheme +
+  #     ggtitle("RSEM\nFPKM normalized by Spike In\nLongPolyA only\nmRNA only")+ 
+  #     geom_abline(slope=1,intercept=0)+ 
+  #     xlab("RPKM spike norm.") + ylab("RPKM spike norm")
+  #   ggsave(paste0(outdir,"rpkmSpikeIn-mRNAOnly-log-vsReps.png"), height=12,width=5)
+  #   
+  #   ggplot(df.cytNuc.fpkm[which(df.cytNuc.fpkm$region == "mRNA"),],
+  #          aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
+  #     facet_grid(cell~localization,scale="free") + thisTheme +
+  #     ggtitle("RSEM\nRPKM of Spike Ins\nmRNA only\nLongPolyA only")+ 
+  #     geom_abline(slope=1,intercept=0)+ xlab("RPKM") + ylab("RPKM ")
+  #   ggsave(paste0(outdir,"rpkm-mRNAOnly-log-vsReps.png"), height=12,width=5)
+  #   
+  #   #lncRNA
+  #   ggplot(df.cytNuc.fpkmSpike[which(df.cytNuc.fpkmSpike$region == "lncRNA"),],
+  #          aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
+  #     facet_grid(cell~localization,scale="free") + thisTheme +
+  #     ggtitle("RSEM\nRPKM normalized by Spike In\nlncRNA only\nLongPolyA only")+ 
+  #     geom_abline(slope=1,intercept=0)+ xlab("RPKM spike norm.") + ylab("RPKM spike norm")
+  #   ggsave(paste0(outdir,"rpkmSpikeIn-lncOnly-log-vsReps.png"), height=12,width=5)
+  #   
+  #   ggplot(df.cytNuc.fpkm[which(df.cytNuc.fpkm$region == "lncRNA"),], 
+  #          aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
+  #     facet_grid(cell~localization,scale="free") + thisTheme +
+  #     ggtitle("RSEM\nRPKM of Spike Ins\nlncRNA only\nLongPolyA only")+ 
+  #     geom_abline(slope=1,intercept=0)+ xlab("RPKM") + ylab("RPKM ")
+  #   ggsave(paste0(outdir,"rpkm-lncOnly-log-vsReps.png"), height=12,width=5)
+  #   
   
   
   m.df <- as.data.frame(group_by(df.cytNuc, cell, localization,variable,region) %.%
@@ -118,8 +127,8 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
   ggplot(melt.df[which(melt.df$variable %in% c("expr.rep1", "expr.rep2") & melt.df$measure == "TPM"),], aes(x=variable,y=value,fill=region)) + 
     geom_bar(stat="identity") +  xlab("replicates") + ylab("count") +
     facet_grid(cell ~localization) 
-    ggtitle("RSEM\nnumber of genes with mapped reads")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/expr-cytNuc.png"), height=12,width=5)
+  ggtitle("RSEM\nnumber of genes with mapped reads")
+  ggsave(paste0(outdir,"expr-cytNuc.png"), height=12,width=5)
   # localization vs. cell 
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) +  
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
@@ -128,7 +137,7 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
     thisTheme + ggtitle("RSEM\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\nfrac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/readCount-cytNuc-region.png"), height=5,width=12)
+  ggsave(paste0(outdir,"readCount-cytNuc-region.png"), height=5,width=12)
   
   # combined
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) + 
@@ -138,7 +147,7 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
     thisTheme2 + ggtitle("RSEM\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\n frac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/readCount-cytNuc-all-combined.png"), height=5,width=10)
+  ggsave(paste0(outdir,"readCount-cytNuc-all-combined.png"), height=5,width=10)
   
   ggplot(m.df, aes(x=measure,y=frac.rep1)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
@@ -147,7 +156,7 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
     thisTheme2 + ggtitle("RSEM\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\nfrac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/readCount-cytNuc-all-combined-join.png"), height=5,width=10)
+  ggsave(paste0(outdir,"readCount-cytNuc-all-combined-join.png"), height=5,width=10)
   
   
   #seperate by localization only
@@ -158,16 +167,21 @@ plotDifferenceBetweenRepsRSEM <- function(file=getFullPath("/data/rsemCapData-lp
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
     thisTheme2 + ggtitle("RSEM\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\n frac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/readCount-cytNuc-combined.png"), height=6,width=10)
+  ggsave(paste0(outdir,"readCount-cytNuc-combined.png"), height=6,width=10)
   
 }
 
-plotReadDistributionRSEM <- function(){
+plotReadDistributionRSEM <- function(outdir=getFullPath("plots/rnaExpr/mappedReads/RSEM/"),
+                                     infile=getFullPath("/data/rsemCapData-lpa-proc.tab")){
+  if(!file.exists(outdir)){dir.create(outdir,path=TRUE)}
+  stopifnot(file.exists(infile))
+  
+  
   tool <- "RSEM "
   rpkmVarName <- "FPKM"
-  saveDir <- getFullPath("plots/rnaExpr/mappedReads/RSEM/cellDistro/")
-  file=getFullPath("/data/rsemCapData-lpa-proc.tab")
+  saveDir <- paste0(outdir,"cellDistro/")
   
+  file = infile
   #df.cytNuc <- read.csv(file=getFullPath("/data/fluxCapData-lpa-proc.tab"),sep="\t")
   #df.cytNuc <- df.cytNuc[which(df.cytNuc$cell == "K562" & df.cytNuc$localization == "cytosol"),]
   #exportAsTable(file=getFullPath("/data/fluxCapData-K562-lpa-proc.tab"), df=df.cytNuc)
@@ -245,8 +259,13 @@ plotReadDistributionRSEM <- function(){
   
 }
 
-plotRSEMcytFrac <- function(){
-  df.cytNuc <- read.csv(file=getFullPath("/data/rsemCapData-lpa-proc.tab"), stringsAsFactors=FALSE, sep ="\t")
+plotRSEMcytFrac <- function(infile=getFullPath("/data/rsemCapData-lpa-proc.tab"),
+                            outdir=getFullPath("plots/rnaExpr/mappedReads/RSEM/")){
+  
+  if(!file.exists(outdir)){dir.create(outdir,path=TRUE)}
+  stopifnot(file.exists(infile))
+  
+  df.cytNuc <- read.csv(file=infile, stringsAsFactors=FALSE, sep ="\t")
   
   
   df.cyt <- df.cytNuc[which(df.cytNuc$localization == "cytosol"),]
@@ -269,20 +288,20 @@ plotRSEMcytFrac <- function(){
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
     ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nTPM: cyt/(nuc + cyt)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFrac-tpm.png"), height=12,width=5)
+  ggsave(paste0(outdir,"cytFrac-tpm.png"), height=12,width=5)
   
   ggplot(df.cytNuc.fpkm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
     ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM: cyt/(nuc + cyt)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFrac-fpkm.png"), height=12,width=5)
+  ggsave(paste0(outdir,"cytFrac-fpkm.png"), height=12,width=5)
   
   
   ggplot(df.cytNuc.fpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
     ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM80): cyt/(nuc + cyt)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFrac-fpkm80.png"), height=12,width=5)
+  ggsave(paste0(outdir,"cytFrac-fpkm80.png"), height=12,width=5)
   
   
   #PLOT pseudo cytFrac
@@ -290,20 +309,20 @@ plotRSEMcytFrac <- function(){
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
     ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nTPM: cytPseudo/(nucPseudo + cytPseudo)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFracPseudo-tpm.png"), height=12,width=5)
+  ggsave(paste0(outdir,"cytFracPseudo-tpm.png"), height=12,width=5)
   
   ggplot(df.cytNuc.fpkm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
     ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM: cytPseudo/(nucPseudo + cytPseudo)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFracPseudo-fpkm.png"), height=12,width=5)
+  ggsave(paste0(outdir,"cytFracPseudo-fpkm.png"), height=12,width=5)
   
   
   ggplot(df.cytNuc.fpkm80, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFracPseudo,color=factor(region.cyt)))+
     geom_density2d() + theme_bw() + thisTheme + 
     facet_grid(cell~region.cyt)+
     ggtitle("RSEM:  \nFraction of Cytosolic RNA-seq expr\nFPKM80: cytPseudo/(nucPseudo + cytPseudo)")
-  ggsave(getFullPath("plots/rnaExpr/mappedReads/RSEM/cytFracPseudo-fpkm80.png"), height=12,width=5)
+  ggsave(paste0(outdir,"cytFracPseudo-fpkm80.png"), height=12,width=5)
   
 }
 
