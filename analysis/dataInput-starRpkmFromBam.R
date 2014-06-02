@@ -225,9 +225,23 @@ doitAnalysis <- function(){
                         ifelse(dat$localization=="cytosol","cyt","NUC" ) )
   
   datShort <- dat[which(dat$V1 %in% c("                   Uniquely mapped reads number ","                          Number of input reads ","                        Uniquely mapped reads % ")),]
-  ggplot(datShort,aes(x=Exp,y=numeric2))+geom_bar(stat="identity")+
-    facet_grid(V1~.,scale="free")+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  ggplot( dat[which(dat$V1 %in% c("                        Uniquely mapped reads % ")),],
+         aes(x=Exp,y=numeric2))+geom_bar(stat="identity")+
+    xlab("RNA sequencing Expr.") + ylab("Percent Input Reads Mapped Uniquely")+
+    ylim(0,100)+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    ggtitle("STAR: Reads mapped uniquely or not at all" )
+  ggsave(file=getFullPath("plots/rnaExpr/mappedReads/compareMethods/STAR-PercentMappedReads-byExp.pdf"),height=6,width=12)
+  
+  ggplot( dat[which(dat$V1 %in% c("                        Uniquely mapped reads % ")),],
+          aes(x=Exp,y=numeric2))+geom_bar(stat="identity")+
+    facet_grid(rnaExtract~.,scale="free")+xlab("RNA sequencing Expr.") + ylab("Percent Input Reads Mapped Uniquely")+
+    ylim(0,100)+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    ggtitle("STAR: Reads mapped uniquely or not at all" )
+  ggsave(file=getFullPath("plots/rnaExpr/mappedReads/compareMethods/STAR-PercentMappedReads-facetByMapping-byExp.pdf"),height=6,width=12)
+  
+  
   
   
   datTot <-  dat[which(dat$V1 %in% c("                          Number of input reads ")),]
@@ -238,9 +252,12 @@ doitAnalysis <- function(){
   datPlot <- melt(datM[c("Exp","notMapped","uniqMapped")],id.var="Exp")
   
   ggplot(datPlot, aes(x=Exp,y=value,fill=variable))+geom_bar(stat="identity")+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1,size=13)) +
-    ylab("Number of Reads") + xlab("Mapped Sequncing Run")
-  
+    theme(axis.text.x = element_text(angle = 90, hjust = 1,size=11)) +
+    ylab("Number of Reads") + xlab("Mapped Sequncing Run")+
+    ggtitle("STAR\nUniquely Mapped Reads out of Total")
+  ggsave(file=getFullPath("plots/rnaExpr/mappedReads/compareMethods/STAR-mappedReads-byExp.pdf"),height=6,width=12)
+
+
 }
 
 copyFilesToZlab <- function(zlabDir,clusterDir, fileEnding){
