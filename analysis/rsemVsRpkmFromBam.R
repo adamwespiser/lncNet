@@ -67,6 +67,77 @@ plotMultiVsUniqReads <- function(){
   
   #subset(rfbMulti, gene_id == "ENSG00000001626.10" & cell == "MCF-7")[c("variable","value.ave.nuc","value.ave.cyt")]
   #subset(rfbUniq, gene_id == "ENSG00000001626.10" & cell == "MCF-7")[c("variable","value.ave.nuc","value.ave.cyt")]
+ 
+}
+
+rpkmFromBamVsRSEM <- function(){
+  rfbUniq <- read.csv(file=getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM-proc.tab"), stringsAsFactors=FALSE, sep ="\t")
+  RSEM <-  read.csv(file=getFullPath("/data/rsemCapData-v2-lpa-proc.tab"), stringsAsFactors=FALSE, sep ="\t")
+  
+  comb <- merge(x=RSEM, y=rfbUniq, by=c("gene_id","cell","variable"),suffixes=c(".rsem",".rfb"))
+  
+  
+  ggplot(comb[which(comb$variable == "RPKM"),], aes(x=log10(2*value.ave.nuc.rsem + 2*value.ave.cyt.rsem),
+                                                    y=log10(2*value.ave.nuc.rfb + 2*value.ave.cyt.rfb),
+                                                    color=cell)) +
+    geom_point()+
+    ggtitle("RPKMfromBAM -> uniq vs. multi mapped reads\n")+
+    xlab("RSEM: cyt+nuc rep1+2")+
+    ylab("RPKMfromBAM cyt+nuc rep1+2")+
+    geom_abline(slope=1,intercept=0) +
+    theme_bw() 
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamCompareRSEM/combined.png"),height=8,width=8)
+  
+  
+  ggplot(comb[which(comb$variable == "TPM"),], aes(x=log10(2*value.ave.nuc.rsem + 2*value.ave.cyt.rsem),
+                                                   y=log10(2*value.ave.nuc.rfb + 2*value.ave.cyt.rfb),
+                                                   color=cell)) +
+    geom_point()+
+    ggtitle("RPKMfromBAM -> uniq vs. multi mapped reads\n")+
+    xlab("RSEM: cyt+nuc rep1+2")+
+    ylab("RPKMfromBAM cyt+nuc rep1+2")+
+    geom_abline(slope=1,intercept=0) +
+    theme_bw() +
+    facet_wrap(~cell)
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamCompare/tpm-byCell.png"),height=8,width=8)
+  
+  
+  ggplot(comb[which(comb$variable == "readsPerKb"),], aes(x=log10(2*value.ave.nuc.rsem + 2*value.ave.cyt.rsem),
+                                                          y=log10(2*value.ave.nuc.rfb + 2*value.ave.cyt.rfb),
+                                                          color=cell)) +
+    geom_point()+
+    ggtitle("RPKMfromBAM -> uniq vs. multi mapped reads\n")+
+    xlab("RSEM: cyt+nuc rep1+2")+
+    ylab("RPKMfromBAM cyt+nuc rep1+2")+
+    geom_abline(slope=1,intercept=0) +
+    theme_bw() +
+    facet_wrap(~cell)
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamCompare/readsPerKb-uniqVsMulti-byCell.png"),height=8,width=8)
+
+  ggplot(comb[which(comb$variable == "RPKM"),], aes(x=log10(2*value.ave.nuc.rsem + 2*value.ave.cyt.rsem),
+                                                    y=log10(2*value.ave.nuc.rfb + 2*value.ave.cyt.rfb),
+                                                    color=cell)) +
+    geom_point()+
+    ggtitle("RPKMfromBAM -> uniq vs. multi mapped reads\n")+
+    xlab("RSEM: cyt+nuc rep1+2")+
+    ylab("RPKMfromBAM cyt+nuc rep1+2")+
+    geom_abline(slope=1,intercept=0) +
+    theme_bw() 
+  ggsave(getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamCompare/rpkm-combined.png"),height=8,width=8)
   
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
