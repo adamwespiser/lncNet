@@ -257,6 +257,9 @@ doitAnalysis <- function(){
   datM <- merge(datTot,datUniqMap,by="Exp",suffix=c(".tot",".uniq"))
   datM$notMapped <- with(datM,numeric2.tot-numeric2.uniq )  
   datM$uniqMapped <- datM$numeric2.uniq
+  datOut <- datM[c("cell.uniq","rnaExtract.uniq","replicate.uniq","localization.uniq","notMapped","uniqMapped")]
+  colnames(datOut) <- c("cell", "rnaExtract", "replicate", "localization","notMapped","uniqMapped")
+  exportAsTable(df=datOut, file = getFullPath("plots/rnaExpr/mappedReads/compareMethods/STAR-mappedStats"))
   datPlot <- melt(datM[c("Exp","notMapped","uniqMapped")],id.var="Exp")
   
   ggplot(datPlot, aes(x=Exp,y=value,fill=variable))+geom_bar(stat="identity")+

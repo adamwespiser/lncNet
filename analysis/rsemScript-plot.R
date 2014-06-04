@@ -9,6 +9,10 @@ doitVersion2 <- function(){
   
   plotRSEMreadDistro(inFile=getFullPath("/data/rsemCapData-v2-readDistro.tab"),
                     outdir=getFullPath("plots/rnaExpr/mappedReads/RSEM-version2/readDistro/"))
+  
+
+  
+  
 }
 
 
@@ -339,7 +343,7 @@ plotRSEMreadDistro <- function(inFile=getFullPath("/data/rsemCapData-v2-readDist
   
   for(rna in c("longPolyA", "longNonPolyA")){
     for(loc in c("cytosol","nucleus")){
-      base = paste0(outdir,rna,"-","loc","-")
+      base = paste0(outdir,rna,"-",loc,"-")
       localTitle = paste("RSEM Read Mapping Distribution\n",rna,loc,"\nFacet by Replicate,Celltype\nmultiplicity=genome aligns per read")
      
       ggplot(rdCnt[which(rdCnt$rnaExtract == rna & rdCnt$localization == loc ),], 
@@ -350,7 +354,7 @@ plotRSEMreadDistro <- function(inFile=getFullPath("/data/rsemCapData-v2-readDist
       
       ggplot(rdCnt[which(rdCnt$rnaExtract == rna & rdCnt$localization == loc ),], 
              aes(x=multiplicity,y=count)) + geom_line() + geom_point()+ 
-        facet_grid(cell~rep) + theme_bw()
+        facet_grid(cell~rep) + theme_bw()+
       ggtitle(localTitle) + xlim(0,20)
       ggsave(paste0(base,"readDistro-zoom.pdf"), height=12,width=5)
       
