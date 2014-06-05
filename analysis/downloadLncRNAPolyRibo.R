@@ -42,6 +42,30 @@ genBwaAlignCmdSpikeIN.paramFile.polyR <- function(rd1,outfile){
          " > ", outfile)
 }
 
+
+getFileNameInPath <- function(filePath){
+  file.vec <- as.character(unlist(strsplit(filePath,split="/")))
+  file.vec[length(file.vec)]
+}
+
+getSubmittedFiles <- function(){
+  df <- read.csv(file=metaLocal, stringsAsFactors=FALSE, sep="\t")
+  files <- df[,"submitted_galaxy"]
+  df$qual <- as.character(unlist(sapply(files, function(x)unlist(strsplit(x,split=";"))[1])))
+  df$csFasta <- as.character(unlist(sapply(files, function(x)unlist(strsplit(x,split=";"))[2])))
+  df$qualFilename <- sapply(qual,getFileNameInPath)
+  df$csFastaFilename <- sapply(csFasta,getFileNameInPath)
+  downloadCmds <- with(df,paste0("wget --continue ",c(csFast,qual), 
+                                 " -O ",dataDir,"/data/",c(csFastaFilename, qualFilename)))
+  md <- paste0(downloadCmds,rep(c(" &"," "),length.out =length(downloadCmds)))
+  write(md, file="~/sandbox/downloadLncPolyRibo.sh")
+  scpFile(file.local="~/sandbox/downloadLncPolyRibo.sh", dir.remote="~/bin/")
+  # chmod u+x ~/bin/downloadLncPolyRibo.sh;~/bin/downloadLncPolyRibo.sh
+}
+
+
+
+
 generateRPKMFromBamFromStar_lncPoly <- function(){
  
   rnaseqdir <- dataDir

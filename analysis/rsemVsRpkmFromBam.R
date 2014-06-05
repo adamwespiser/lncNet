@@ -186,6 +186,26 @@ rpkmFromBamVsRSEM <- function(){
                      summarise(nucleus =cor(value.rep1.nuc,value.rep2.nuc,method="pearson"),
                                cytosol =cor(value.rep1.cyt,value.rep2.cyt,method="pearson")),id.var="cell")  
   
+  
+  rfbTopExpr <- as.data.frame(group_by(rfbUniq[which(rfbUniq$variable == "RPKM"),],cell) %.%
+       mutate(exprRank = rank(1/(value.ave.nuc + value.ave.cyt))))
+  
+  rfbTopExpr7000 <- as.data.frame(group_by(rfbTopExpr[which(rfbTopExpr$exprRank < 7000),], cell) %.% 
+                                    mutate(value.rep1.cyt = apply80norm(value.rep1.cyt) * 1000000,
+                                          value.rep2.cyt = apply80norm(value.rep2.cyt) * 1000000,
+                                            value.rep1.nuc = apply80norm(value.rep1.nuc) * 1000000,
+                                              value.rep2.nuc = apply80norm(value.rep2.nuc) * 1000000,
+                                           value.ave.cyt = (value.rep1.cyt + value.rep2.cyt)/2,
+                                           value.ave.nuc = (value.rep1.nuc + value.rep2.nuc)/2))
+
+  
+  rfbTopExpr7000$cytFrac <- with(rfbTopExpr7000, (value.ave.cyt)/(value.ave.cyt + value.ave.nuc))
+  ggplot(rfbTopExpr7000, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+xlim(0,1)+
+    ggtitle("RPKMFromBam:  \nFraction of Cytosolic RNA-seq expr\nRPKM): cyt/(nuc + cyt)")
+  
+  
 }
 
 

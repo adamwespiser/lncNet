@@ -24,7 +24,7 @@ doitUniqReads <- function(){
   uniqReportFile = getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM-REPORT.tab")
   processCellsMaxTransExpr_ByExon(suffix=".uniq.star_sort.transByExon.gtf",transSuffix=".uniq.star_sort.trans.gtf",outfile=uniqOutfile)
   procFile = getDataTotalReadsBtwnReps_rpkmFromBamTopTrans_ByExon(infile=uniqOutfile,reportFile=uniqReportFile)
-  plotRatiosTopTrans(infile=procFile,
+  plotRatiosTopTrans(infile=getFullPath("data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM-proc.tab"),
                      outdir = getFullPath("plots/rnaExpr/mappedReads/RPKMfromBamTopTrans/cytFracByExon_uniqRead/"),
                      plotMsg="unique reads mapped by STAR")
   
@@ -327,6 +327,82 @@ plotRatiosTopTrans <- function(infile,outdir = getFullPath("plots/rnaExpr/mapped
     facet_grid(cell~region.cyt)+
     ggtitle(paste0("RPKMfromBAM Top Trans Count By Exon\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)\n",plotMsg))
   ggsave(paste0(outdir,"/rpkm-cells.png"), height=12,width=5)
+  
+  
+  
+  rfbTopExpr <- as.data.frame(group_by(df.lpa.ratio.rpkm,cell) %.%
+                                mutate(exprRank = rank(1/(value.ave.nuc + value.ave.cyt))))
+  
+  rfbTopExpr7000 <- as.data.frame(group_by(rfbTopExpr[which(rfbTopExpr$exprRank < 7000),], cell) %.% 
+                                    mutate(value.rep1.cyt = apply80norm(value.rep1.cyt) * 1000000,
+                                           value.rep2.cyt = apply80norm(value.rep2.cyt) * 1000000,
+                                           value.rep1.nuc = apply80norm(value.rep1.nuc) * 1000000,
+                                           value.rep2.nuc = apply80norm(value.rep2.nuc) * 1000000,
+                                           value.ave.cyt = (value.rep1.cyt + value.rep2.cyt)/2,
+                                           value.ave.nuc = (value.rep1.nuc + value.rep2.nuc)/2,
+                                           cytFrac = (value.ave.cyt)/(value.ave.cyt + value.ave.nuc),
+                                           total.cyt = sum(value.ave.cyt),
+                                           total.nuc = sum(value.ave.nuc)))
+  
+  
+  
+  ggplot(rfbTopExpr7000, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+
+    geom_density2d() + theme_bw() + thisTheme + 
+    facet_grid(cell~region.cyt)+xlim(0,1)+
+    ggtitle(paste0("RPKMfromBAM Top Trans Count By Exon\nTop 7000 Genes Per Cell\nRe-normalized after cutoff\nFraction of Cytosolic RNA-seq expr\nRPKM: cyt/(nuc + cyt)\n",plotMsg))
+  ggsave(paste0(outdir,"/rpkm-top7000-cells.png"), height=12,width=5)
+  
+  
+  exprProp7000 <-as.data.frame(group_by(rfbTopExpr7000,cell,region.cyt) %.% 
+                                 summarise(cytExprFrac = sum(value.ave.cyt),
+                  nucExprFrac = sum(value.ave.nuc)))
+  
+  ggplot(exprProp7000,aes(x=cell,y=cytExprFrac,fill=region.cyt))+
+    geom_bar(stat="identity",position="fill")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+ 
+    ggtitle(paste0("RPKMfromBAM Top Trans Count By Exon\nTop 7000 Genes Per Cell\nRe-normalized after cutoff\nProportion of Exression Per Biotype\nCytosol",plotMsg))
+  ggsave(paste0(outdir,"/cytProportion-top7000-cells.png"), height=7,width=7)
+  
+  
+  ggplot(exprProp7000,aes(x=cell,y=nucExprFrac,fill=region.cyt))+
+    geom_bar(stat="identity",position="fill")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+ 
+    ggtitle(paste0("RPKMfromBAM Top Trans Count By Exon\nTop 7000 Genes Per Cell\nRe-normalized after cutoff\nProportion of Exression Per Biotype\nNucleus",plotMsg))
+  ggsave(paste0(outdir,"/nucProportion-top7000-cells.png"), height=7,width=7)
+  
+  
+  m7000 <- melt(exprProp7000[which(exprProp7000$region.cyt == "lnc"),],id.var=c("cell","region.cyt"))
+  
+  ggplot(m7000,aes(x=cell,y=value,fill=variable))+
+    geom_bar(stat="identity",position="fill")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ylab("Expression Fraction loc1/(loc1 + loc2)") +
+    ggtitle(paste0("RPKMfromBAM Top Trans Count By Exon\nTop 7000 Genes Per Cell\nRe-normalized after cutoff\nProportion of Exression Per Biotype\nLncRNA comparison",plotMsg))
+  ggsave(paste0(outdir,"/lncRNA-proportionComp-top7000-cells.png"), height=7,width=7)
+  
+  exprProp.rpkm <-as.data.frame(group_by(df.lpa.ratio.rpkm,cell,region.cyt) %.% 
+                                 summarise(cytExprFrac = sum(value.ave.cyt),
+                                           nucExprFrac = sum(value.ave.nuc)))
+  ggplot(exprProp.rpkm,aes(x=cell,y=cytExprFrac,fill=region.cyt))+
+    geom_bar(stat="identity",position="fill")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+ 
+    ggtitle(paste0("RPKMfromBAM Top Trans Count By Exon\nAll Genes\nProportion of Exression Per Biotype(RPKM\nCytosol",plotMsg))
+  ggsave(paste0(outdir,"/cytProportion-allGenes-cells.png"), height=7,width=7)
+  
+  
+  ggplot(exprProp.rpkm,aes(x=cell,y=nucExprFrac,fill=region.cyt))+
+    geom_bar(stat="identity",position="fill")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+ 
+    ggtitle(paste0("RPKMfromBAM Top Trans Count By Exon\nAll Genes\nProportion of Exression Per Biotype(RPKM)\nNucleus",plotMsg))
+  ggsave(paste0(outdir,"/nucProportion-allGenes-cells.png"), height=7,width=7)
+  
+  lncRNA <- names(table(df.lpa.ratio.rpkm$region.cyt))[grep(x=names(table(df.lpa.ratio.rpkm$region.cyt)),pattern="lnc")]
+  mAll <- melt(exprProp.rpkm[which(exprProp.rpkm$region.cyt == lncRNA),],id.var=c("cell","region.cyt"))
+  
+  ggplot(mAll,aes(x=cell,y=value,fill=variable))+
+    geom_bar(stat="identity",position="fill")+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+ ylab("Expression Fraction, loc1/(loc1 + loc2)") +
+    ggtitle(paste0("RPKMfromBAM Top Trans Count By Exon\nAll Genes\nProportion of Exression Per Biotype(RPKM)\nLncRNA comparison",plotMsg))
+  ggsave(paste0(outdir,"/lncRNA-proportionComp-allGenes-cells.png"), height=7,width=7)
   
   
   #TPM 
