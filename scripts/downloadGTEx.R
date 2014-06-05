@@ -125,3 +125,133 @@ runConvertToFastq <- function(script="~/sandbox/downloadGTEx_sraToFastQ.sh"){
 }
 
 
+readInGTExAllMeta <- function(){
+  df <- read.csv(file = "/home/wespisea/work/research/researchProjects/encode/encode-manager/data/GTExSraDB-metainfo.tab",stringsAsFactors=FALSE,sep="\t")
+  datadir <- "/data/wespisea/gtex/fastq/"
+  df$read1 <- paste0(datadir,df$run_accession,"_1.fasta.gz")
+  df$read2 <- paste0(datadir,df$run_accession,"_2.fasta.gz")
+  df$cddownloadCmd <- paste0("cd /data/wespisea/gtex/sraDB;~/bin/sratoolkit.2.3.5-2-ubuntu64/bin/fastq-dump -O /data/wespisea/gtex/fastq/ --split-files -gzip ",df$run_accession)
+  df$downloadCmd <- paste0("/home/wespisea/bin/sratoolkit.2.3.5-2-ubuntu64/bin/fastq-dump -O /data/wespisea/gtex/fastq/ --split-files -gzip ",df$run_accession)
+  df$gtexId <- as.character(unlist(sapply(df$sample_attribute, function(x)convertToList(x)[["submitted_sample_id"]])))
+  
+  df
+}
+getGTExAnnot <- function(file= "/home/wespisea/data/GTExSampleAnnot.tab"){
+  df <- read.csv(file,sep="\t",stringsAsFactors=FALSE)
+  df$SAMPID <- as.character(sapply(df$SAMPID, function(x)gsub(x=x,pattern="[\\_\\-]",replacement="\\.")))
+  df
+}
+
+getGTExWithFullAnnot <- function(){
+  d <- getGTExAnnot()
+  m <- readInGTExAllMeta()
+  d$SAMPIDdash = gsub(d$SAMPID, pattern="\\.",replacement="-")
+  m$gtexId= sapply(m$gtexId,toupper)
+  d$SAMPIDdash= sapply(d$SAMPIDdash,toupper)
+  comb <- merge(d,m, by.x="SAMPIDdash",by.y="gtexId")
+  
+}
+
+getGTExWithMeta <- function(){
+  annot <- getGTExWithFullAnnot()
+ 
+  df <- readInGTExAllMeta()
+  df$cddownloadCmd <- paste0("cd /data/wespisea/gtex/sraDB;~/bin/sratoolkit.2.3.5-2-ubuntu64/bin/fastq-dump -O /data/wespisea/gtex/fastq/ --split-files -gzip /data/wespisea/gtex/sra/",
+                             df$run_accession,".sra")
+  gtexDir <- "/data/wespisea/gtex/fastq/"
+  df$fastq1 <- paste0(gtexDir, df$run_accession, "_1.fastq.gz")
+  df$fastq2 <- paste0(gtexDir, df$run_accession, "_2.fastq.gz")
+  df$sraFile <- paste0("/data/wespisea/gtex/sra/",df$run_accession,".sra")
+  
+  df$haveMetaData <- ifelse(df$run_accession %in% annot$run_accession, TRUE, FALSE)
+  df$fastq1Exists <- sapply(df$fastq1, file.exists)
+  df$fastq2Exists <- sapply(df$fastq2, file.exists)
+  df  
+}
+
+
+
+runConvertToFastqMeta <- function(script="~/sandbox/downloadGTEx_sraToFastQ.sh"){
+  #downloadFileMissing()
+  df <- getGTExWithMeta()
+  df.need <- df[-which(df$fastq1Exists  & df$fastq2Exists),]
+  df.need.meta <- df.need[which(df.need$haveMetaData),]
+  df.need.noMeta <- df.need[-which(df.need$haveMetaData),]
+  
+  #split need meta
+  o.convert <- paste0(df.need.meta$cddownloadCmd,
+                      rep(c(" &"," "),length=length(df.need.meta$cddownloadCmd)))
+  
+  len <- length(o.convert)
+  midpoint <- floor(len/2)
+  
+  write(o.convert[1:midpoint], file = "~/sandbox/downloadGTEx_sraToFastQ_1.sh")
+  write(o.convert[(midpoint+1):len], file = "~/sandbox/downloadGTEx_sraToFastQ_2.sh")
+  write(df.need.noMeta$cddownloadCmd, file = "~/sandbox/downloadGTEx_sraToFastQ_3.sh")
+  
+  convert.cmd1 <- paste0("screen -d -m sh -c \"~/sandbox/downloadGTEx_sraToFastQ_1.sh\"")
+  convert.cmd2 <- paste0("screen -d -m sh -c \"~/sandbox/downloadGTEx_sraToFastQ_2.sh\"")
+  convert.cmd3 <- paste0("screen -d -m sh -c \"~/sandbox/downloadGTEx_sraToFastQ_3.sh\"")
+  
+  system(convert.cmd1)
+  system(convert.cmd2)
+  system(convert.cmd3)
+  
+  
+  # ../sra/SRR612347.sra 
+}
+
+#/home/wespisea/bin/FastQC/fastqc -q -o ~/sandbox SRR1092397_1.fastq.gz
+
+fastqcReport <- function(){
+  df <- getGTExWithMeta()
+  reportdir <- "/data/wespisea/gtex/fastq-FastQC-report/"
+  df$fastqc1File <- paste0(reportdir, df$run_accession, "_1")
+  df$fastqc2File <- paste0(reportdir, df$run_accession, "_2")
+  
+  df$cmd1fastqc <- paste0("mkdir ",df$fastqc1File, ";/home/wespisea/bin/FastQC/fastqc -q -o ",df$fastqc1File,"/ ", df$fastq1)
+  df$cmd2fastqc <- paste0("mkdir ",df$fastqc2File,";/home/wespisea/bin/FastQC/fastqc -q -o ",df$fastqc2File,"/ ", df$fastq2)
+  #/data/wespisea/gtex/fastq-FastQC-report/SRR615008_1/SRR615008_1_fastqc.html
+  df$cmd1fastqcDest <- paste0("/data/wespisea/gtex/fastq-FastQC-report/",
+                              df$run_accession,"_1/",df$run_accession,"_1_fastqc.html")
+  df$cmd2fastqcDest <- paste0("/data/wespisea/gtex/fastq-FastQC-report/",
+                              df$run_accession,"_2/",df$run_accession,"_2_fastqc.html")
+  df$fastqc1Exists <- sapply(df$cmd1fastqcDest,file.exists)
+  df$fastqc2Exists <- sapply(df$cmd2fastqcDest,file.exists)
+  
+  
+  df.need <- df[which(df$fastq1Exists == FALSE & df$fastq2Exists == FALSE),]
+  df.need.meta <- df.need[which(df.need$haveMetaData),]
+  df.need.noMeta <- df.need[which(df.need$haveMetaData == FALSE),]
+
+  df.have <- df[which(df$fastq1Exists  & df$fastq2Exists),]
+  df.have.meta <- df.have[which(df.have$haveMetaData),]
+  
+  fastq1cmds <- df.have.meta$cmd1fastqc[which(df.have.meta$fastqc1Exists == FALSE)]
+  fastq2cmds <- df.have.meta$cmd2fastqc[which(df.have.meta$fastqc2Exists == FALSE)]
+  
+  
+  
+  idx <- order(c(seq_along(fastq1cmds), seq_along(fastq2cmds)))
+  cmds <- c(fastq1cmds,fastq2cmds)[idx]
+  write(cmds, file = "~/sandbox/makeGTExFastqcReport.sh")
+  fastqcCmd <- paste0("screen -d -m sh -c \"~/sandbox/makeGTExFastqcReport.sh\"")
+  cat(fastqcCmd)
+  
+}
+
+starGenerateGenome_ZLAB <- function(){
+  rnaseqdir <- "/data/wespisea/STAR-genome/"
+  starGenomeDir <- paste(rnaseqdir,"starGenomeDir/",sep="")
+  genomeFasta <- paste(rnaseqdir,"GRCh37.p13.genome.fa",sep="")
+  annotationGtf <- paste(rnaseqdir,"gencode.v19.annotation.gtf",sep="")
+  # STAR --runMode genomeGenerate --genomeDir genomepath --genomeFastaFiles  genomepath/genome.fa  
+  # --sjdbGTFfile genomepath/genes.gtf --sjdbOverhang 75 --runThreadN 8
+  generateGenome <- paste0("/home/wespisea/bin/STAR_2.3.0e.Linux_x86_64/STAR --runMode genomeGenerate --genomeDir ", starGenomeDir, " --genomeFastaFiles ", genomeFasta,
+         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhand 75 --runThreadN 6") 
+  createGenome <- paste0("screen -d -m sh -c \"",generateGenome,"\"")
+  cat(createGenome)
+}
+
+
+
