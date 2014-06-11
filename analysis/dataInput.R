@@ -1161,6 +1161,105 @@ runRSEMonCytNuc <- function(){
   
   
 }
+
+genStarAlignCmdSpikeIN.paramFileUniq <- function(rd1,rd2,outfile){
+  paramFile <- "/home/aw30w/log/params/parametersMulti_AWmod.txt"
+  paste0("STAR --runMode alignReads ", 
+         " --readFilesIn ", rd1, " ", rd2, 
+         " --outFileNamePrefix ", outfile,
+         " --parametersFiles ", paramFile)
+}
+
+runeXpressOnCytNuc <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+ # df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & rnaExtract == "longPolyA")
+#  df.fastq <- subset()
+  
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
+  # rsem-calculate-expression --paired-end wgEncodeCshlLongRnaSeqSknshraCellLongnonpolyaFastqRd1Rep1.fastq.gz wgEncodeCshlLongRnaSeqSknshraCellPapFastqRd2Rep1.fastq.gz /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ -p 8 --ci-memory 8G --samtools-sort-mem 8GB 
+  read1 <- file.path(rnaseqdir,df.comb$read1.filename)
+  read2 <- file.path(rnaseqdir,df.comb$read2.filename)
+  read1.fa <- gsub(x=read1,pattern=".gz",replacement="")
+  read2.fa <- gsub(x=read2,pattern=".gz",replacement="")
+  
+   # cat ~/bin/runStar.sh | xargs -I{}  perl ~/bin/runJob.pl -c 16 -m 3072 -W 600 -Q short -t "runStar" -i "{}"
+  df.comb$starAln <- file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".star.samAligned.out.sam"))
+  df.comb$starAlnBam <- file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".bam"))
+  df.comb$starSortBamShort <- file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".rdsrt"))
+  
+  df.comb$starSortBam <- file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".rdsrt.bam"))
+  df.comb$starSortBai <- file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".rdsrt.bam.bai"))
+  df.comb$expressOutput <- file.path(rnaseqdir,"starSpikeIn-multi","/express/",df.comb$bare)
+  df.comb$expressInput <- paste0(rnaseqdir,"/starSpikeIn-multi/",df.comb$bare,".rdsrt.bam")
+  
+  
+  cmd0 <- genStarAlignCmdSpikeIN.paramFileUniq(rd1=gsub(file.path(rnaseqdir,df.comb$read1.filename),pattern="\\.gz",replacement=""  ),
+                                               rd2=gsub(file.path(rnaseqdir,df.comb$read2.filename),pattern="\\.gz",replacement=""  ),
+                                               outfile=file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".star.sam")))
+   
+  cmd1 <- paste0("samtools view -bS ",
+                 df.comb$starAln ,
+                 " -o ", df.comb$starAlnBam)
+  
+  cmd2 <- paste0("samtools sort -n -m 171798691840 ",
+                 df.comb$starAlnBam," ",  df.comb$starSortBamShort)
+  
+  cmd3 <- paste0("samtools index ", df.comb$starSortBam)
+  
+  cmd4 <- paste0("/home/aw30w/bin/express-1.5.1-linux_x86_64/express  ",
+                 "--output-dir=",df.comb$expressOutput,
+                 " /project/umw_zhiping_weng/wespisea/bowtie-ref/gencode.v19.annotation.fa ",
+                 df.comb$starSortBam)
+  
+  cmd5 <- paste0("rm ",df.comb$starAln,
+                "\nrm ",df.comb$starAlnBam )
+  
+  write(paste(cmd0,cmd1,sep=";;"), file="~/sandbox/runStarMulit.sh")
+  scpFile(file.local="~/sandbox/runStarMulit.sh", dir.remote="~/bin/") # df.comb$starAln # df.comb$starAlnBam
+
+  write(paste(cmd2,cmd3,sep=";;"), file="~/sandbox/runStarMulitSort.sh")
+  scpFile(file.local="~/sandbox/runStarMulitSort.sh", dir.remote="~/bin/") # df.comb$starSortBam # df.comb$starSortBai
+  
+  write(cmd4, file="~/sandbox/smsIndexExp.sh")
+  scpFile(file.local="~/sandbox/smsIndexExp.sh", dir.remote="~/bin/") # df.comb$expressOutput
+  
+  write(cmd5, file="~/sandbox/eXpClean.sh")
+  scpFile(file.local="~/sandbox/eXpClean.sh", dir.remote="~/bin/") # df.comb$expressOutput
+  
+  
+  # cat ~/bin/runStarMulit.sh | xargs -I{}  perl ~/bin/runJob.pl -c 16 -m 3072 -W 720 -Q short -t "runStarM" -i "{}"
+  # cat ~/bin/runStarMulitSort.sh | xargs -I{}  perl ~/bin/runJob.pl -c 2 -m 80072 -W 720 -Q short -t "starSortMultiIndex" -i "{}"
+  # cat ~/bin/smsIndexExp.sh | xargs -I{}  perl ~/bin/runJob.pl -c 16 -m 3072 -W 720 -Q short -t "eXpress" -i "{}"
+  # sh ~/bin/eXpClean.sh
+  
+  
+  line1 = 'cat ~/bin/runStarMulit.sh | xargs -I{} perl /home/aw30w/bin/runJob.pl  -c 16 -m 3072 -W 720 -Q short -t "runStarM" -i "{}" | /home/aw30w/bin/getJobId > tmp'
+  line2 = 'paste -d "#" tmp ~/bin/runStarMulitSort.sh | xargs -I{} perl /home/aw30w/bin/runJobDep.pl -c 2 -m 80072 -W 720 -Q short -t "starSortMultiIndex" -i "{}" | /home/aw30w/bin/getJobId > tmp2'
+  line3 = 'paste -d "#" tmp2 ~/bin/smsIndexExp.sh | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 16 -m 3072 -W 720 -Q short -t "eXpress" -i "{}" | /home/aw30w/bin/getJobId > tmp3'
+  
+  
+  write(paste0(line1,"\n",line2,"\n",line3), file="~/sandbox/eXpressRunAll.sh")
+  scpFile(file.local="~/sandbox/eXpressRunAll.sh", dir.remote="~/bin/")
+  # cat ~/bin/eXpressRunAll.sh
+  
+  
+  #/project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19
+ 
+
+  
+}
+
+
+
+
+
+
 generateStarBedops<- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
   df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
