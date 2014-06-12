@@ -1214,7 +1214,7 @@ runeXpressOnCytNuc <- function(){
   
   cmd4 <- paste0("/home/aw30w/bin/express-1.5.1-linux_x86_64/express  ",
                  "--output-dir=",df.comb$expressOutput,
-                 " /project/umw_zhiping_weng/wespisea/bowtie-ref/gencode.v19.annotation.fa ",
+                 " /project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.fa ",
                  df.comb$starSortBam)
   
   cmd5 <- paste0("rm ",df.comb$starAln,
