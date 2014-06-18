@@ -1190,6 +1190,7 @@ runeXpressOnCytNuc <- function(){
   
    # cat ~/bin/runStar.sh | xargs -I{}  perl ~/bin/runJob.pl -c 16 -m 3072 -W 600 -Q short -t "runStar" -i "{}"
   df.comb$starAln <- file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".star.samAligned.out.sam"))
+  df.comb$starDone <- file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".star.samLog.final.out"))
   df.comb$starAlnBam <- file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".bam"))
   df.comb$starSortBamShort <- file.path(rnaseqdir,"starSpikeIn-multi",paste0(df.comb$bare,".rdsrt"))
   
@@ -1250,8 +1251,59 @@ runeXpressOnCytNuc <- function(){
   
   
   #/project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19
- 
-
+  starDone <- sapply(df.comb$starDone,hpc.file.exists)
+  
+  rdsrtBam <- sapply(df.comb$starSortBam,hpc.file.exists)
+  starAlnBam<- sapply(df.comb$starAlnBam,hpc.file.exists)
+  
+  
+  
+  ## READ SORT FAIL
+  cmd2.notDone <- cmd2
+  cmd2.notDone[which(rdsrtBam == TRUE)] <- "sleep 1"
+  write(cmd2.notDone, file="~/sandbox/runStarMulitSort2.sh")
+  scpFile(file.local="~/sandbox/runStarMulitSort2.sh", dir.remote="~/bin/") # df.comb$starSortBam # df.comb$starSortBai
+  
+  write(cmd4, file="~/sandbox/smsIndexExp2.sh")
+  scpFile(file.local="~/sandbox/smsIndexExp2.sh", dir.remote="~/bin/") # df.comb$expressOutput
+  
+  line1 = 'cat ~/bin/runStarMulitSort2.sh | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 2 -m 183840  -W 720 -Q short -t "starSortMultiRead" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/deps/tmp31'
+  line3 = 'paste -d "#" /home/aw30w/log/deps/tmp31 ~/bin/smsIndexExp2.sh | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 16 -m 6072 -W 720 -Q short -t "eXpress" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/deps/tmp_finalOut'
+  
+  
+  write(paste0(line1,"\n",line3), file="~/sandbox/eXpressRunAll2.sh")
+  scpFile(file.local="~/sandbox/eXpressRunAll2.sh", dir.remote="~/bin/")
+  
+  
+  ### STAR FAIL ####
+  cmd2 <- paste0("samtools sort -n -m 101798691840 -@ 8",
+                 df.comb$starAlnBam," ",  df.comb$starSortBamShort)
+  c0 = cmd0[which(starDone == FALSE)]
+  c1 = cmd1[which(starDone == FALSE)]
+  c2 = cmd2[which(starDone == FALSE)]
+  c4 = cmd4[which(starDone == FALSE)]
+  
+  write(c0, file="~/sandbox/runStarMulti_1.sh")
+  scpFile(file.local="~/sandbox/runStarMulti_1.sh", dir.remote="~/bin/") # df.comb$starAln # df.comb$starAlnBam
+  
+  write(c1, file="~/sandbox/runStarMultiSort_1.sh")
+  scpFile(file.local="~/sandbox/runStarMultiSort_1.sh", dir.remote="~/bin/") # df.comb$starSortBam # df.comb$starSortBai
+  
+  write(c2, file="~/sandbox/starSort_1")
+  scpFile(file.local="~/sandbox/starSort_1", dir.remote="~/bin/") # df.comb$expressOutput
+  
+  write(c4, file="~/sandbox/expr1")
+  scpFile(file.local="~/sandbox/expr1", dir.remote="~/bin/") # df.comb$expressOutput
+  
+  
+  line1 = 'cat ~/bin/runStarMulti_1.sh | xargs -I{} perl /home/aw30w/bin/runJob.pl  -c 16 -m 6072 -W 720 -Q short -t "star1" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/deps/star1'
+  line2 = 'paste -d "#" /home/aw30w/log/deps/star1 ~/bin/runStarMultiSort_1.sh | xargs -I{} perl /home/aw30w/bin/runJobDep.pl -c 2 -m 60072 -W 720 -Q short -t "star2" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/deps/star2'
+  line3 = 'paste -d "#" /home/aw30w/log/deps/star2 ~/bin/starSort_1 | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 9 -m 15072 -W 720 -Q short -t "star3" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/deps/star3'
+  line4 = 'paste -d "#" /home/aw30w/log/deps/star3 ~/bin/expr1 | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 16 -m 6072 -W 720 -Q short -t "star3" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/deps/star4'
+  write(paste0(line1,"\n",line2,"\n",line3,"\n",line4), file="~/sandbox/eXpressRun_missStart.sh")
+  scpFile(file.local="~/sandbox/eXpressRun_missStart.sh", dir.remote="~/bin/")
+  
+  # chmod u+x ~/bin/eXpressRun_missStart.sh;~/bin/eXpressRun_missStart.sh
   
 }
 
