@@ -855,7 +855,7 @@ genStarAlignCmdTranscriptome <- function(rd1,rd2,outfile){
   #--alignSJDBoverhangMin 1 --quantMode TranscriptomeSAM --runThreadN 12 &
     
   rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
-  starGenomeDir <- paste(rnaseqdir,"starGenomeDir/",sep="")
+  starGenomeDir <- paste(rnaseqdir,"starGenomeDirTrans-test/",sep="")
   genomeFasta <- paste(rnaseqdir,"GRCh37.p13.genome.fa",sep="")
   annotationGtf <- paste(rnaseqdir,"gencode.v19.annotation.gtf",sep="")
   
@@ -1227,13 +1227,15 @@ mapStarToTranscriptome <- function(){
   
   rsemOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM",df.comb$bare)
   rpkmFromBamOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM","rpkmFromBam",df.comb$bare)
-  starOutput <- file.path(rnaseqdir, "star-transcriptome",df.comb$bare)
+  starOutput <- file.path(rnaseqdir, "star-transcriptome",paste0(df.comb$bare,".star.sam"))
   df.comb$starAln <- paste0(starOutput, "Aligned.out.sam") # AlignedToTranscriptome.out.bam
   df.comb$AlignedToTrans <- paste0(starOutput, "AlignedToTranscriptome.out.bam") 
   df.comb$starAlnBam <- paste0(starOutput, ".bam")
   df.comb$starSortBamShort <- paste0(starOutput, ".sort")
   df.comb$starSortBam <- paste0(starOutput, ".sort.bam")
   df.comb$expressOut <- file.path(rnaseqdir, "star-transcriptome","eXpress",df.comb$bare)
+  df.comb$rsemOut <- file.path(rnaseqdir, "star-transcriptome","RSEM",df.comb$bare)
+  
   rpkmFromBamOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM","rpkmFromBam",df.comb$bare)
   
   
@@ -1248,13 +1250,14 @@ mapStarToTranscriptome <- function(){
   
   cmd3 <- paste0("samtools index ", df.comb$starSortBam)
   
-  cmd4 <- paste0("/home/aw30w/bin/express-1.5.1-linux_x86_64/express  ",
-                 "--output-dir=", df.comb$AlignedToTrans,
-                 " /project/umw_zhiping_weng/wespisea/rna-seq/GRCh37.p13.genome.spikeIn.fa ",
-                 df.comb$starSortBam)
+  cmd4 <- paste0("/home/aw30w/bin/express-1.5.1-linux_x86_64/express  --no-update-check --rf-stranded ",
+                 "--output-dir=", df.comb$expressOut,
+                 " /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.bedtools.getfasta.split.fa ",
+                 df.comb$AlignedToTrans)
   
-  cmd5 <- paste0("rsem-calculate-expression -p 12 --bam --paired-end --no-bam-output --forward-prob 0 --estimate-rspd ",
-                 df.comb$AlignedToTrans, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/  RSEM ")
+  cmd5 <- paste0("rsem-calculate-expression -p 12 --paired-end --no-bam-output --forward-prob 0 --estimate-rspd --bam ",
+                 df.comb$AlignedToTrans, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
+                 df.comb$rsemOut)
   
   
   rsemOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM",df.comb$bare)
@@ -1266,6 +1269,18 @@ mapStarToTranscriptome <- function(){
   # perl /home/aw30w/bin/runTaskR301.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 2880 -Q long -t rsem
   #cat ~/bin/rsemReadMap | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem" -i "{}"
     
+  write(o1, file="~/sandbox/starTrans")
+  scpFile(file.local="~/sandbox/starTrans", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTrans -c 17 -m 8192 -W 600 -Q long -t starTrans
+  
+  write(cmd4, file="~/sandbox/starTransExpress")
+  scpFile(file.local="~/sandbox/starTransExpress", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTransExpress -c 17 -m 8192 -W 600 -Q short -t starTransExpress
+  
+  write(cmd5, file="~/sandbox/starTransRSEM")
+  scpFile(file.local="~/sandbox/starTransRSEM", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTransRSEM -c 17 -m 8192 -W 600 -Q short -t starTransRSEM
+  
   write(o8, file="~/sandbox/rpkm-tool")
   scpFile(file.local="~/sandbox/rpkm-tool", dir.remote="~/bin/")
   # perl /home/aw30w/bin/runTask.pl -f ~/bin/rpkm-tool -c 5 -m 8192 -W 600 -Q long -t rpkmRSEM

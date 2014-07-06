@@ -15,6 +15,15 @@ pc.cpat <- "/home/wespisea/data/gencode.v19.pc_transcripts.cpat"
 
 plotDir <- "/home/wespisea/work/research/researchProjects/coexpr/lncNET/plots/gencode/codingPotential/"
 
+lncRNAORF <- "/home/wespisea/data/humanLncRNAORFs.csv"
+
+getLncRNAorf <- function(){
+  df <- read.csv(file=lncRNAORF,stringsAsFactors=FALSE)
+  df$gene_id_short <- sapply(df$orfID, function(x)unlist(strsplit(x,split="\\.")[[1]])[1])
+  df
+}
+
+
 readInCPAT <- function(biotype="lnc"){
   stopifnot(biotype %in% c("lnc","pc"))
   f <- ifelse(biotype == "lnc", lnc.cpat,pc.cpat)
@@ -38,6 +47,7 @@ getAllCPAT <- function(plot=FALSE){
 }
   
 plotCPAT <- function(){
+    outdir = "/home/wespisea/work/research/researchProjects/coexpr/lncNET/plots/gencode/codingPotential/"
     comb <- getAllCPAT()
     comb.fr <- comb[c("transcript_id","gene_name","type","mRNA_size", "ORF_size", "Fickett_score", "Hexamer_score","coding_prob")]
     comb.fr$ORF_ratio <- comb.fr$ORF_size / comb.fr$mRNA_size
@@ -49,6 +59,22 @@ plotCPAT <- function(){
     comb.fr$ORF_size <- NULL
     m <- melt(comb.fr,id.var=c("transcript_id","gene_name","type"))
     m$value <- as.numeric(m$value)
+    
+    
+    comb.fr.lncs <- which(comb.fr$type=="lnc" & comb.fr$coding_prob > 0.25)
+    comb.fr.a <- comb.fr[-comb.fr.lncs]
+    
+    ggplot(comb.fr.a, aes(x=coding_prob,fill=type))+geom_density(alpha=I(0.4))+
+      theme_bw()+xlab("coding probability")+
+      ggtitle("GENCODE V19 -> analysis of coding potential\nlncRNA vs. mRNA distributions")+
+      theme(legend.position="top")+
+      theme(axis.title.y = element_text(size = rel(1.4)))+
+      theme(axis.title.x = element_text(size = rel(1.4)))+
+      theme(axis.text.y = element_text(size = rel(1.3)))+
+      theme(axis.text.x = element_text(size = rel(1.3)))
+    ggsave(paste0(outdir,"CPAT-lncVmRNA-density.png"),height=5,width=5)
+    
+    
     
     m$biotype <- ifelse(m$type == "lnc", "lncRNA", "mRNA")
     ggplot(m, aes(x=value,fill=biotype))+geom_density(alpha=I(0.4))+
@@ -201,6 +227,9 @@ readInGtfGencode <- function(file = v19){
   transcriptBlackList <- c("snoRNA", "miRNA", "retained_intron", "sense_intronic","rRNA", "snRNA")
   # remove transcripts by biotypes we don't want
   lncGeneTransNotBlocked <- lncGenes[-which(lncGenes$transcript_type %in% transcriptBlackList),]
+  lncGeneTransNotBlocked$gene_id_short <- sapply(lncGeneTransNotBlocked$gene_id, function(x)unlist(strsplit(x,split="\\.")[[1]])[1])
+  lncGeneTransNotBlocked$transcript_id_short <- sapply(lncGeneTransNotBlocked$transcript_id, function(x)unlist(strsplit(x,split="\\.")[[1]])[1])
+  
   lncPcCPAT <- getAllCPAT()
   cutoff <- 0.25
   #lncRNA transcripts below cutoff
