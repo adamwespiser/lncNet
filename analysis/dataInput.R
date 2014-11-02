@@ -780,7 +780,7 @@ starGenerateGenomeCommand <- function(){
   #STAR --runMode genomeGenerate --genomeDir genomepath --genomeFastaFiles  genomepath/genome.fa  
   # --sjdbGTFfile genomepath/genes.gtf --sjdbOverhang 100 --runThreadN 8
   paste0("STAR --runMode genomeGenerate --genomeDir ", starGenomeDir, " --genomeFastaFiles ", genomeFasta,
-         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhand 75 --runThreadN 16") 
+         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhang 75 --runThreadN 16") 
 }
 
 starGenerateGenomeCommandTranscriptome <- function(){
@@ -791,9 +791,29 @@ starGenerateGenomeCommandTranscriptome <- function(){
   #STAR --runMode genomeGenerate --genomeDir genomepath --genomeFastaFiles  genomepath/genome.fa  
   # --sjdbGTFfile genomepath/genes.gtf --sjdbOverhang 100 --runThreadN 8
   paste0("/home/aw30w/bin/STAR_2.3.1z4/STAR --runMode genomeGenerate --genomeDir ", starGenomeDir, " --genomeFastaFiles ", genomeFasta,
-         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhand 75 --runThreadN 16") 
+         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhang 75 --runThreadN 16") 
+}
+starGenerateGenomeCommand_v38 <- function(){
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  starGenomeDir <- paste(rnaseqdir,"starGenomeDir_GRCh38/",sep="")
+  genomeFasta <- paste(rnaseqdir,"GRCh38.genome.noALT.fa",sep="")
+  annotationGtf <- paste(rnaseqdir,"gencode.v21.annotation.gtf",sep="")
+  #STAR --runMode genomeGenerate --genomeDir genomepath --genomeFastaFiles  genomepath/genome.fa  
+  # --sjdbGTFfile genomepath/genes.gtf --sjdbOverhang 100 --runThreadN 8
+  paste0("/home/aw30w/bin/STAR_2.3.1z4/STAR --runMode genomeGenerate --genomeDir ", starGenomeDir, " --genomeFastaFiles ", genomeFasta,
+         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhang 75 --runThreadN 16") 
 }
 
+starGenerateGenomeCommandTranscriptome_v21 <- function(){
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  starGenomeDir <- paste(rnaseqdir,"starGenomeDirTrans_gencode21/",sep="")
+  genomeFasta <- paste(rnaseqdir,"GRCh38.genome.noALT.fa",sep="")
+  annotationGtf <- paste(rnaseqdir,"gencode.v21.annotation.gtf",sep="")
+  #STAR --runMode genomeGenerate --genomeDir genomepath --genomeFastaFiles  genomepath/genome.fa  
+  # --sjdbGTFfile genomepath/genes.gtf --sjdbOverhang 100 --runThreadN 8
+  paste0("/home/aw30w/bin/STAR_2.3.1z4/STAR --runMode genomeGenerate --genomeDir ", starGenomeDir, " --genomeFastaFiles ", genomeFasta,
+         " --sjdbGTFfile ", annotationGtf, " --sjdbOverhang 75 --runThreadN 16") 
+}
 
 starGenerateGenomeCommand.spike <- function(){
   rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
@@ -870,7 +890,28 @@ genStarAlignCmdTranscriptome <- function(rd1,rd2,outfile){
          " --alignSJDBoverhangMin 1 --quantMode TranscriptomeSAM ")
 }
 
-
+genStarAlignCmdTranscriptomeRSEM <- function(rd1,rd2,outfile){
+  #STAR --genomeDir /path/to/genome/ --readFilesIn Read1.gz Read2.gz --outSAMattributes NH   HI    
+  #--outFilterMultimapNmax 20   --outFilterMismatchNmax 999   --outFilterMismatchNoverLmax 0.04  
+  #--alignIntronMin 20   --alignIntronMax 1000000   --alignMatesGapMax 1000000   --alignSJoverhangMin 8
+  #--alignSJDBoverhangMin 1 --quantMode TranscriptomeSAM --runThreadN 12 &
+  
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  starGenomeDir <- paste(rnaseqdir,"starGenomeDirTrans-test/",sep="")
+  genomeFasta <- paste(rnaseqdir,"GRCh37.p13.genome.fa",sep="")
+  annotationGtf <- paste(rnaseqdir,"gencode.v19.annotation.gtf",sep="")
+  
+  paste0("/home/aw30w/bin/STAR_2.3.1z4/STAR --runMode alignReads --genomeLoad LoadAndRemove --runThreadN 16", 
+         " --readFilesIn ", rd1, " ", rd2, 
+         " --genomeDir ", starGenomeDir,
+         " --genomeFastaFiles ", genomeFasta,
+         " --sjdbGTFfile ", annotationGtf,
+         " --outFileNamePrefix ", outfile,
+         " --outSAMattributes NH HI --outFilterMultimapNmax 20 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.04 ",
+         " --alignIntronMin 2  --alignIntronMax 1 --alignMatesGapMax 1000000 --alignSJoverhangMin 8",
+         " --alignSJDBoverhangMin 1 --quantMode TranscriptomeSAM ",
+         " --alignEndsType EndToEnd ")
+}
 downloadBamBaiFile <- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
   df.cytNuc.restFastq <- subset(df, type == "fastq" & (localization == "nucleus" | localization == "cytosol") & cell != "K562" & cell != "GM12878")
@@ -1212,6 +1253,7 @@ mapStarToTranscriptome <- function(){
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
   df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
   df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & rnaExtract == "longPolyA")
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
   
   read1 <- grep(df.fastq$filename,pattern="Rd1")
   read2 <- grep(df.fastq$filename,pattern="Rd2")
@@ -1226,10 +1268,18 @@ mapStarToTranscriptome <- function(){
   read2.fa <- gsub(x=read2,pattern=".gz",replacement="")
   
   rsemOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM",df.comb$bare)
+  rsemOutputE2e <- file.path(rnaseqdir, "star-transcriptome","RSEM-e2e",df.comb$bare)
+  
   rpkmFromBamOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM","rpkmFromBam",df.comb$bare)
   starOutput <- file.path(rnaseqdir, "star-transcriptome",paste0(df.comb$bare,".star.sam"))
   df.comb$starAln <- paste0(starOutput, "Aligned.out.sam") # AlignedToTranscriptome.out.bam
   df.comb$AlignedToTrans <- paste0(starOutput, "AlignedToTranscriptome.out.bam") 
+  
+  starOutputRSEM <- file.path(rnaseqdir, "star-transcriptome",paste0(df.comb$bare,".rsem.star.sam"))
+  df.comb$starAlnRSEM <- paste0(starOutputRSEM, "Aligned.out.sam") # AlignedToTranscriptome.out.bam
+  df.comb$AlignedToTransRSEM <- paste0(starOutputRSEM, "AlignedToTranscriptome.out.bam") 
+  df.comb$rsemOutE2e <- file.path(rnaseqdir, "star-transcriptome","RSEM-e2e",df.comb$bare)
+  
   df.comb$starAlnBam <- paste0(starOutput, ".bam")
   df.comb$starSortBamShort <- paste0(starOutput, ".sort")
   df.comb$starSortBam <- paste0(starOutput, ".sort.bam")
@@ -1240,7 +1290,7 @@ mapStarToTranscriptome <- function(){
   
   
   o1 <- genStarAlignCmdTranscriptome(read1.fa,read2.fa,paste0(starOutput,".star.sam"))
-  
+  o2 <- genStarAlignCmdTranscriptomeRSEM(read1.fa,read2.fa,starOutputRSEM)
   cmd1 <- paste0("samtools view -bS ",
                  df.comb$starAln ,
                  " -o ", df.comb$starAlnBam)
@@ -1250,7 +1300,7 @@ mapStarToTranscriptome <- function(){
   
   cmd3 <- paste0("samtools index ", df.comb$starSortBam)
   
-  cmd4 <- paste0("/home/aw30w/bin/express-1.5.1-linux_x86_64/express  --no-update-check --rf-stranded ",
+  cmd4 <- paste0("/home/aw30w/bin/express-1.5.1-linux_x86_64/express  --no-update-check  ",
                  "--output-dir=", df.comb$expressOut,
                  " /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.bedtools.getfasta.split.fa ",
                  df.comb$AlignedToTrans)
@@ -1258,7 +1308,9 @@ mapStarToTranscriptome <- function(){
   cmd5 <- paste0("rsem-calculate-expression -p 12 --paired-end --no-bam-output --forward-prob 0 --estimate-rspd --bam ",
                  df.comb$AlignedToTrans, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
                  df.comb$rsemOut)
-  
+  cmd6 <- paste0("rsem-calculate-expression -p 12 --paired-end --no-bam-output --forward-prob 0 --estimate-rspd --bam ",
+                 df.comb$AlignedToTransRSEM, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
+                 df.comb$rsemOutE2e)
   
   rsemOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM",df.comb$bare)
   rpkmFromBamOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM","rpkmFromBam",df.comb$bare)
@@ -1275,11 +1327,29 @@ mapStarToTranscriptome <- function(){
   
   write(cmd4, file="~/sandbox/starTransExpress")
   scpFile(file.local="~/sandbox/starTransExpress", dir.remote="~/bin/")
-  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTransExpress -c 17 -m 8192 -W 600 -Q short -t starTransExpress
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTransExpress -c 17 -m 8192 -W 720 -Q short -t starTransExpress
+  
+  l1 <- 'cat ~/bin/starTrans | xargs -I{} perl /home/aw30w/bin/runJob.pl  -c 16 -m 3072 -W 240 -Q short -t "star1" -i "{}" | /home/aw30w/bin/getJobId > tmp111'
+  l2 <- 'paste -d "#" tmp111  ~/bin/starTransExpress | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 16 -m 3072 -W 240 -Q short -t "star2" -i "{}" | /home/aw30w/bin/getJobId > tmp222'
+  cat(l1,"\n",l2)
   
   write(cmd5, file="~/sandbox/starTransRSEM")
   scpFile(file.local="~/sandbox/starTransRSEM", dir.remote="~/bin/")
-  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTransRSEM -c 17 -m 8192 -W 600 -Q short -t starTransRSEM
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTransRSEM -c 17 -m 8192 -W 720 -Q short -t starTransRSEM
+  
+  
+  write(o2, file="~/sandbox/starTransE2e")
+  scpFile(file.local="~/sandbox/starTransE2e", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTransE2e -c 17 -m 8192 -W 600 -Q short -t starTrans
+  
+  write(cmd6, file="~/sandbox/starTransRSEME2e")
+  scpFile(file.local="~/sandbox/starTransRSEME2e", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTransRSEME2e -c 17 -m 8192 -W 720 -Q short -t starTransRSEME2e
+  
+  line1 = 'cat ~/bin/starTransE2e | xargs -I{} perl /home/aw30w/bin/runJob.pl -c 17 -m 8192 -W 600 -Q short -t "starTransE2e" -i "{}" | /home/aw30w/bin/getJobId > ~/stranstmp'
+  line2 = 'paste -d "#" ~/stranstmp ~/bin/starTransRSEME2e | xargs -I{} perl /home/aw30w/bin/runJobDep.pl -c 17 -m 8192 -W 720 -Q short -t "starTransRSEME2e" -i "{}" | /home/aw30w/bin/getJobId > ~/stranstmp2'
+  cat(paste(line1,line2,sep="\n"))
+  
   
   write(o8, file="~/sandbox/rpkm-tool")
   scpFile(file.local="~/sandbox/rpkm-tool", dir.remote="~/bin/")
@@ -1296,6 +1366,78 @@ mapStarToTranscriptome <- function(){
 }
 
 
+mapStarToTranscriptome <- function(){
+  df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & (cell == "K562" | cell == "GM12878"))
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & rnaExtract == "longPolyA")
+  rnaseqdir <- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  
+  read1 <- grep(df.fastq$filename,pattern="Rd1")
+  read2 <- grep(df.fastq$filename,pattern="Rd2")
+  
+  df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
+  df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
+  
+  # rsem-calculate-expression --paired-end wgEncodeCshlLongRnaSeqSknshraCellLongnonpolyaFastqRd1Rep1.fastq.gz wgEncodeCshlLongRnaSeqSknshraCellPapFastqRd2Rep1.fastq.gz /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ -p 8 --ci-memory 8G --samtools-sort-mem 8GB 
+  read1 <- file.path(rnaseqdir,df.comb$read1.filename)
+  read2 <- file.path(rnaseqdir,df.comb$read2.filename)
+  read1.fa <- gsub(x=read1,pattern=".gz",replacement="")
+  read2.fa <- gsub(x=read2,pattern=".gz",replacement="")
+  
+  
+  rpkmFromBamOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM","rpkmFromBam",df.comb$bare)
+  starOutput <- file.path(rnaseqdir, "star-transcriptome",paste0(df.comb$bare,".star.sam"))
+  df.comb$starAln <- paste0(starOutput, "Aligned.out.sam") # AlignedToTranscriptome.out.bam
+  df.comb$AlignedToTrans <- paste0(starOutput, "AlignedToTranscriptome.out.bam") 
+  
+    
+  df.comb$starAlnBam <- paste0(starOutput, ".bam")
+
+  df.comb$expressOut <- file.path(rnaseqdir, "star-transcriptome","eXpress",df.comb$bare)
+  df.comb$rsemOut <- file.path(rnaseqdir, "star-transcriptome","RSEM",df.comb$bare)
+  
+  
+  
+  o1 <- genStarAlignCmdTranscriptome(read1.fa,read2.fa,starOutput)
+  o2 <- genStarAlignCmdTranscriptomeRSEM(read1.fa,read2.fa,starOutputRSEM)
+  cmd1 <- paste0("samtools view -bS ",
+                 df.comb$starAln ,
+                 " -o ", df.comb$starAlnBam)
+  
+  cmd2 <- paste0("samtools sort -m 171798691840 ",
+                 df.comb$starAlnBam," ",  df.comb$starSortBamShort)
+  
+  cmd3 <- paste0("samtools index ", df.comb$starSortBam)
+  
+  cmd4 <- paste0("/home/aw30w/bin/express-1.5.1-linux_x86_64/express  --no-update-check  ",
+                 "--output-dir=", df.comb$expressOut,
+                 " /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.bedtools.getfasta.split.fa ",
+                 df.comb$AlignedToTrans)
+  
+  
+  #  o1 <- paste0("gzip -d ",read1,";;gzip -d ",read2,";;rsem-calculate-expression --num-threads 8 --ci-memory 40960 --output-genome-bam --paired-end ", read1.fa," ",read2.fa, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref-spikeIn/ ",rsemOutput )
+  #  write(o1, file="~/sandbox/rsemReadMap")
+  #  scpFile(file.local="~/sandbox/rsemReadMap", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTaskR301.pl -f ~/bin/rsemReadMap -c 8 -m 6192 -W 2880 -Q long -t rsem
+  #cat ~/bin/rsemReadMap | xargs -I{}  perl ~/bin/runJobR301.pl -c 8 -m 6192 -W 2880 -Q long -t "rsem" -i "{}"
+  
+  write(o1, file="~/sandbox/starTrans")
+  scpFile(file.local="~/sandbox/starTrans", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTrans -c 17 -m 8192 -W 600 -Q long -t starTrans
+  
+  write(cmd4, file="~/sandbox/starTransExpress")
+  scpFile(file.local="~/sandbox/starTransExpress", dir.remote="~/bin/")
+  # perl /home/aw30w/bin/runTask.pl -f ~/bin/starTransExpress -c 17 -m 8192 -W 720 -Q short -t starTransExpress
+  
+  l1 <- 'cat ~/bin/starTrans | xargs -I{} perl /home/aw30w/bin/runJob.pl  -c 16 -m 3072 -W 240 -Q short -t "star1" -i "{}" | /home/aw30w/bin/getJobId > tmp111'
+  l2 <- 'paste -d "#" tmp111  ~/bin/starTransExpress | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 16 -m 3072 -W 240 -Q short -t "star2" -i "{}" | /home/aw30w/bin/getJobId > tmp222'
+  cat(l1,"\n",l2)
+  
+  
+  
+  
+  
+}
 
 
 
@@ -1374,7 +1516,7 @@ runeXpressOnCytNuc <- function(){
   # sh ~/bin/eXpClean.sh
   
   
-  line1 = 'cat ~/bin/runStarMulit.sh | xargs -I{} perl /home/aw30w/bin/runJob.pl  -c 16 -m 3072 -W 720 -Q short -t "runStarM" -i "{}" | /home/aw30w/bin/getJobId > tmp'
+  line1 = 'cat ~/bin/runStarMulit.sh | xargs -I{} perl /home/aw30w/bin/runJob.pl  -c 16 -m 3072 -W 600 -Q short -t "runStarM" -i "{}" | /home/aw30w/bin/getJobId > tmp'
   line2 = 'paste -d "#" tmp ~/bin/runStarMulitSort.sh | xargs -I{} perl /home/aw30w/bin/runJobDep.pl -c 2 -m 80072 -W 720 -Q short -t "starSortMultiIndex" -i "{}" | /home/aw30w/bin/getJobId > tmp2'
   line3 = 'paste -d "#" tmp2 ~/bin/smsIndexExp.sh | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 16 -m 3072 -W 720 -Q short -t "eXpress" -i "{}" | /home/aw30w/bin/getJobId > tmp3'
   
@@ -1453,7 +1595,10 @@ runeXpressOnCytNuc <- function(){
   scpFile(file.local="~/sandbox/eXpressRun_missStart.sh", dir.remote="~/bin/")
   
   # chmod u+x ~/bin/eXpressRun_missStart.sh;~/bin/eXpressRun_missStart.sh
-  
+  df.comb$expressExpr <- paste0(df.comb$expressOutput,"/results.xprs")
+  exprDone<- sapply(df.comb$expressExpr,hpc.file.exists)
+
+
 }
 
 

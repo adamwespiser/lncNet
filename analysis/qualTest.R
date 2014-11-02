@@ -213,7 +213,15 @@ getCutoff <- function(X){
   
 }
 
+wordCloud <- function(){
+  load(file="~/sandbox/stmsd.rdata") # tbl , SMTSD
+  
+  
+  devtools::install("wordcloud")
+library(wordcloud)
+wordcloud(nms,percent,random.color=TRUE,rot.per=0.2,colors=sample(size=length(nms),x=brewer.pal("Dark2",n=8),replace=TRUE))
 
+}
 
 
 
