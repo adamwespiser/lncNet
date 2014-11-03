@@ -77,8 +77,8 @@ readIneXpressGtfParsed <- function(file="/home/wespisea/data/eXpress//wgEncodeCs
   #ggsum <- summarize(gg, sum(fpkm),sum(tpm))
   
   
-  df <- ddply(tt,.(gene_id),a=mean(tpm),b=mean(fpkm))
-  
+  df <- ddply(tt,.(gene_id),summarize,a=mean(tpm),b=mean(fpkm))
+  colnames(df) <- c("gene_id","tpm","fpkm")
  # df <- genes.df 
   
   
@@ -146,21 +146,22 @@ getDataTotalReadsBtwnReps_eXpress <- function(reportFile=getFullPath("/data/eXpr
   df.together <- getTranscriptData_eXpress( rnaExtract="longPolyA",
                                          localDir = localDir,
                                          remoteDir = remoteDir)
-  print("got df.together") 
-  report.df  <- as.data.frame(group_by(df.together,cell,localization,replicate) %.%
-                                summarise(length(gene_id),
-                                          mean(tpm),
-                                          sum(tpm),
-                                          mean(tpm),
-                                          sum(fpkm),
-                                          sum(fpkm > 0)))
-  report.df$experiment <- paste(ifelse(report.df$localization == "cytosol", "cyt", "nuc"),report.df$replicate,sep=".")
-  colnames(report.df) <- c("cell", "localization", "replicate", "genesFound", "meanTPM", 
-                           "sumTPM", "meanFPKM", "sumFPKM", "genesExpressed", "experiment")
-  exportAsTable(df=report.df, file = reportFile)
   df.together <- as.data.frame(group_by(df.together, cell, localization,rnaExtract,replicate) %.% 
                                  mutate(FPKM_80norm = apply80norm(fpkm) * 1000000))
   
+  print("got df.together") 
+#   report.df  <- ddply(df.together,cell,localization,replicate) %.%
+#                                 summarise(length(gene_id),
+#                                           mean(tpm),
+#                                           sum(tpm),
+#                                           mean(tpm),
+#                                           sum(fpkm),
+#                                           sum(fpkm > 0)))
+#   report.df$experiment <- paste(ifelse(report.df$localization == "cytosol", "cyt", "nuc"),report.df$replicate,sep=".")
+#   colnames(report.df) <- c("cell", "localization", "replicate", "genesFound", "meanTPM", 
+#                            "sumTPM", "meanFPKM", "sumFPKM", "genesExpressed", "experiment")
+#   exportAsTable(df=report.df, file = reportFile)
+   
   #  group_by(df.together, cell, localization,rnaExtract,replicate) %.% summarise(mean(RPKM_80norm/transTotalRPKM, na.rm=TRUE))
   
   exportAsTable(file=paste0(outFile,".all"), df=df.together)

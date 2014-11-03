@@ -12,6 +12,7 @@ readInGTExAllMeta <- function(){
   df$downloadCmd <- paste0("/home/wespisea/bin/sratoolkit.2.3.5-2-ubuntu64/bin/fastq-dump -O /data/wespisea/gtex/fastq/ --split-files -gzip ",df$run_accession)
   df
 }
+
 genWebsiteKey <- function(SRA="SRR613771"){
   system(paste("cd /data/wespisea/gtex/sraDB; ~/bin/sratoolkit.2.3.5-2-ubuntu64/bin/test-sra",SRA,"2>&1 > ~/sandbox/sratoolTest &"))
   Sys.sleep(30)
@@ -252,6 +253,4 @@ starGenerateGenome_ZLAB <- function(){
   createGenome <- paste0("screen -d -m sh -c \"",generateGenome,"\"")
   cat(createGenome)
 }
-
-
 
