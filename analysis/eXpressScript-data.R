@@ -1,3 +1,7 @@
+library(reshape2)
+library(ggplot2)
+library(plyr)
+library(dplyr)
 
 rnaseqdir <<- "/project/umw_zhiping_weng/wespisea/rna-seq/"
 transGene <<- "/home/wespisea/work/research/researchProjects/coexpr/lncNET/data/gencode.v19.annotation.transGene.space"
@@ -5,6 +9,41 @@ transGene <<- "/home/wespisea/work/research/researchProjects/coexpr/lncNET/data/
 ghpc <<- "aw30w@ghpcc06.umassrc.org"
 lnc.v19.list <<- "/home/wespisea/data/gtf//gencode.v19.long_noncoding_RNAs.geneList"
 pc.v19.list <<- "/home/wespisea/data/gtf//gencode.v19.annotation.pc.geneList"
+apply80norm2 <- function(s){
+  s.pos <- s[which(s > 0)]
+  lowerp <- quantile(s.pos,0.1)
+  upperp <- quantile(s.pos,0.9)
+  s/sum(s[which(s > lowerp & s < upperp)])
+}
+
+
+apply80norm <- function(s){
+  s.pos <- s[which(s > 0)]
+  lowerp <- quantile(s.pos,0.2)
+  upperp <- quantile(s.pos,0.8)
+  s/sum(s[which(s > lowerp & s < upperp)])
+}
+
+
+
+
+eXpress_remap_doit_2 <- function(){
+  rnaseqdir <<- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  
+  geteXpressDataForOneCell( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",
+                                        localDir = "/home/wespisea/data/eXpress_nofr/",
+                                        remoteDir = file.path(rnaseqdir,"star-transcriptome2/eXpress"),
+                                        getFile=TRUE,
+                                        suffix=".results.xprs",
+                                        remoteSuffix="results.xprs")
+  
+  
+  getDataTotalReadsBtwnReps_eXpress( reportFile=getFullPath("/data/eXpress-nofr-lpa-proc-REPORT.tab"),
+                                     localDir = "/home/wespisea/data/eXpress_nofr/",
+                                     remoteDir = file.path(rnaseqdir,"star-transcriptome2/eXpress"),
+                                     outFile = getFullPath("/data/eXpress-nofr-lpa-proc.tab"))  
+}
+
 
 
 
@@ -28,7 +67,8 @@ geteXpressDataForOneCell <- function( filesTxtTab="~/data/wgEncodeCshlLongRnaSeq
                                    localDir = "/home/wespisea/data/eXpress/",
                                    remoteDir = file.path(rnaseqdir,"star-transcriptome/eXpress"),
                                    getFile=FALSE,
-                                   suffix=".results.xprs"){
+                                   suffix=".results.xprs",
+                                   remoteSuffix="results.xprs"){
   
   if(!file.exists(localDir)){
     dir.create(localDir)
@@ -42,7 +82,7 @@ geteXpressDataForOneCell <- function( filesTxtTab="~/data/wgEncodeCshlLongRnaSeq
   
   df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
   df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
-  df.comb$remote <- paste0(remoteDir,"/",df.comb$bare,"/",suffix)
+  df.comb$remote <- paste0(remoteDir,"/",df.comb$bare,"/",remoteSuffix)
   df.comb$local <- paste0(localDir,"/",df.comb$bare,suffix)
   
   if(TRUE == getFile){
@@ -67,18 +107,29 @@ readIneXpressGtfParsed <- function(file="/home/wespisea/data/eXpress//wgEncodeCs
   
   m.df <- merge(x=tdf,y=tg.df,by.x="target_id",by.y="trans")
   m.df$geneFactor <- factor(m.df$gene_id)
-  tt <- m.df[c("gene_id","tpm","fpkm")]
+  m.df$tpm = ifelse(m.df$solvable, m.df$tpm,0)
+  m.df$fpkm = ifelse(m.df$solvable, m.df$fpkm,0)
+  tt <- m.df[c("gene_id","tpm","fpkm","uniq_counts","eff_counts")]
   
-  #genes.df  <- as.data.frame(  group_by(tt,gene_id) %>%  
-   #                              summarize(a= sum(fpkm),
-   #                                       b= sum(tpm)) )
-  
+  df  <- as.data.frame(  dplyr::group_by(tt,gene_id) %>%  
+                                dplyr::summarize(a= sum(fpkm),
+                                          b= sum(tpm),
+                                          c=sum(uniq_counts),
+                                          d=sum(eff_counts)))
+
+  df$fpkm <- df$a
+  df$a <- NULL
+  df$tpm <- df$b
+  df$b <- NULL
+  df$uniq_counts <- df$c
+  df$c <- NULL
+  df$eff_counts <- df$d
+  df$d <- NULL
   #gg <- group_by(tt, gene_id)
   #ggsum <- summarize(gg, sum(fpkm),sum(tpm))
   
   
-  df <- ddply(tt,.(gene_id),summarize,a=mean(tpm),b=mean(fpkm))
-  colnames(df) <- c("gene_id","tpm","fpkm")
+  #df <- ddply(tt,.(gene_id),summarize,a=mean(tpm),b=mean(fpkm))
  # df <- genes.df 
   
   
@@ -138,33 +189,46 @@ getTranscriptData_eXpress <- function(celltype,rnaExtract,cellMissing=c("A549","
   df.together
 }
 
-getDataTotalReadsBtwnReps_eXpress <- function(reportFile=getFullPath("/data/eXpressCapData-lpa-proc-REPORT.tab"),
-                                           localDir = "/home/wespisea/data/eXpress/",
-                                           remoteDir = file.path(rnaseqdir,"star-transcriptome/eXpress"),
-                                           outFile = getFullPath("/data/eXpressCapData-lpa-proc.tab")){
+getDataTotalReadsBtwnReps_eXpress <- function(reportFile=getFullPath("/data/eXpressCapData-nofr-lpa-proc-REPORT.tab"),
+                                           localDir = "/home/wespisea/data/eXpress_nofr//",
+                                           remoteDir = file.path(rnaseqdir,"star-transcriptome/eXpress2"),
+                                           outFile = getFullPath("/data/eXpressCapData-nofr-lpa-proc.tab")){
+  
+  if(identical(globalenv(), environment())){
+       variables <- ls()
+reportFile=getFullPath("/data/eXpressCapData-nofr-lpa-proc-REPORT.tab")
+    localDir = "/home/wespisea/data/eXpress_nofr//"
+    remoteDir = file.path(rnaseqdir,"star-transcriptome2/eXpress")
+    outFile = getFullPath("/data/eXpressCapData-nofr-lpa-proc.tab")
+   }
   
   df.together <- getTranscriptData_eXpress( rnaExtract="longPolyA",
                                          localDir = localDir,
                                          remoteDir = remoteDir)
-  df.together <- as.data.frame(group_by(df.together, cell, localization,rnaExtract,replicate) %.% 
-                                 mutate(FPKM_80norm = apply80norm(fpkm) * 1000000))
+  df.together <- as.data.frame(dplyr::group_by(df.together, cell, localization,rnaExtract,replicate) %>% 
+                                 dplyr::mutate(FPKM_80norm = apply80norm(fpkm) * 1000000))
   
   print("got df.together") 
-#   report.df  <- ddply(df.together,cell,localization,replicate) %.%
-#                                 summarise(length(gene_id),
-#                                           mean(tpm),
-#                                           sum(tpm),
-#                                           mean(tpm),
-#                                           sum(fpkm),
-#                                           sum(fpkm > 0)))
-#   report.df$experiment <- paste(ifelse(report.df$localization == "cytosol", "cyt", "nuc"),report.df$replicate,sep=".")
-#   colnames(report.df) <- c("cell", "localization", "replicate", "genesFound", "meanTPM", 
-#                            "sumTPM", "meanFPKM", "sumFPKM", "genesExpressed", "experiment")
-#   exportAsTable(df=report.df, file = reportFile)
+  report.df  <- as.data.frame(dplyr::group_by(df.together,cell,localization,replicate) %>%
+                                dplyr::summarise(length(gene_id),
+                                          mean(tpm),
+                                          sum(tpm),
+                                          mean(fpkm),
+                                          sum(fpkm),
+                                          sum(fpkm > 0),
+                                          sum(uniq_counts),
+                                          sum(eff_counts)))
+  report.df$experiment <- paste(ifelse(report.df$localization == "cytosol", "cyt", "nuc"),report.df$replicate,sep=".")
+  colnames(report.df) <- c("cell", "localization", "replicate", "genesFound", "meanTPM", 
+                           "sumTPM", "meanFPKM", "sumFPKM", "genesExpressed",
+                           "uniqMappedReads","estimatedTotalReads", "experiment")
+  report.df$fracUniq<- with(report.df, uniqMappedReads/estimatedTotalReads)
+  exportAsTable(df=report.df, file = reportFile)
    
-  #  group_by(df.together, cell, localization,rnaExtract,replicate) %.% summarise(mean(RPKM_80norm/transTotalRPKM, na.rm=TRUE))
+  #  group_by(df.together, cell, localization,rnaExtract,replicate) %>% summarise(mean(RPKM_80norm/transTotalRPKM, na.rm=TRUE))
   
   exportAsTable(file=paste0(outFile,".all"), df=df.together)
+  
   df.together$gene_type <- df.together$region
   df.abbrev <- df.together[ c("region","replicate", "gene_id","gene_type", "localization","rnaExtract","cell", "FPKM_80norm", "tpm","fpkm")]
   
@@ -229,6 +293,11 @@ getDataTotalReadsBtwnReps_eXpress <- function(reportFile=getFullPath("/data/eXpr
   
   exportAsTable(file=paste0(outFile,".merge"), df=df.cytNuc)
   exportAsTable(file=outFile, df=df.cytNuc.rbind)
+  
+  if(identical(globalenv(), environment())){
+    curr <- ls()
+    rm(list=curr[!curr %in% variables])
+  }
   
 }
 

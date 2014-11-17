@@ -1,23 +1,60 @@
 
+thisTheme <<- theme_bw() +
+  theme(text = element_text(size=12)) + 
+  theme(panel.grid.major.x = element_line(colour = "grey"))+
+  theme(panel.grid.minor.x = element_line(colour = "grey")) +
+  theme(panel.grid.major.y = element_blank())+
+  theme(panel.grid.minor.y = element_blank()) +
+  theme(legend.position = "top")
 
 
-doitVersion2 <- function(){
-  v2.infile = getFullPath("/data/eXpressCapData-v2-lpa-proc.tab")
-  v2.outdir = getFullPath("plots/rnaExpr/mappedReads/eXpress-version2/")
+thisTheme2 <<- theme_bw() +
+  theme(text = element_text(size=16)) + 
+  theme(panel.grid.major.x = element_line(colour = "grey"))+
+  theme(panel.grid.minor.x = element_line(colour = "grey")) +
+  theme(panel.grid.major.y = element_blank())+
+  theme(panel.grid.minor.y = element_blank()) +
+  theme(legend.position = "top")
+
+
+doitVersion2_nofr <- function(){
+  v2.infile = getFullPath("/data/eXpressCapData-nofr-lpa-proc.tab")
+  v2.outdir = getFullPath("plots/rnaExpr/mappedReads/eXpress-nofr/")
+  if(!file.exists(v2.outdir)){
+    dir.create(v2.outdir)
+  }
+  
+  report.df <- read.csv(sep="\t",file=getFullPath("/data/eXpressCapData-nofr-lpa-proc-REPORT.tab"))
+  
+  
   plotDifferenceBetweenRepseXpress(infile=v2.infile,outdir=v2.outdir)
   ploteXpresscytFrac(infile=v2.infile,outdir=v2.outdir)
   
-  ploteXpressreadDistro(inFile=getFullPath("/data/eXpressCapData-v2-readDistro.tab"),
-                     outdir=getFullPath("plots/rnaExpr/mappedReads/eXpress-version2/readDistro/"))
-  
-  
-  
+  #ploteXpressreadDistro(inFile=getFullPath("/data/eXpressCapData-nofr-v2-readDistro.tab"),
+  #                      outdir=getFullPath("plots/rnaExpr/mappedReads/eXpress-nofr/readDistro/"))
   
 }
 
 
-plotDifferenceBetweenRepseXpress <- function(infile=getFullPath("/data/eXpressCapData-lpa-proc.tab"),
-                                          outdir=getFullPath("plots/rnaExpr/mappedReads/eXpress/"))  {
+
+
+doitVersion2 <- function(){
+  v2.infile = getFullPath("/data/eXpressCapData-lpa-proc.tab")
+  v2.outdir = getFullPath("plots/rnaExpr/mappedReads/eXpress/")
+  if(!file.exists(v2.outdir)){
+    dir.create(v2.outdir)
+  }
+  plotDifferenceBetweenRepseXpress(infile=v2.infile,outdir=v2.outdir)
+  ploteXpresscytFrac(infile=v2.infile,outdir=v2.outdir)
+  
+  #ploteXpressreadDistro(inFile=getFullPath("/data/eXpressCapData-v2-readDistro.tab"),
+  #                   outdir=getFullPath("plots/rnaExpr/mappedReads/eXpress/readDistro/"))
+  
+}
+
+
+plotDifferenceBetweenRepseXpress <- function(infile=getFullPath("/data/eXpressCapData-nofr-lpa-proc.tab"),
+                                          outdir=getFullPath("plots/rnaExpr/mappedReads/eXpress-nofr/"))  {
   
   stopifnot(file.exists(infile))
   if(!file.exists(outdir)){dir.create(outdir,path=TRUE)}
@@ -26,13 +63,13 @@ plotDifferenceBetweenRepseXpress <- function(infile=getFullPath("/data/eXpressCa
   #df.cytNuc.fpkmSpike[which(df.cytNuc.fpkmSpike$gene_id %in% pc),"region"] <- "mRNA"
   #df.cytNuc.fpkmSpike[which(df.cytNuc.fpkmSpike$gene_id %in% lnc),"region"] <- "lncRNA"
   
-  df.cytNuc.fpkm <- df.cytNuc[which(df.cytNuc$variable =="FPKM"),]
+  df.cytNuc.fpkm <- df.cytNuc[which(df.cytNuc$variable =="fpkm"),]
   #df.cytNuc.fpkm[which(df.cytNuc.fpkm$gene_id %in% pc),"region"] <- "mRNA"
   #df.cytNuc.fpkm[which(df.cytNuc.fpkm$gene_id %in% lnc),"region"] <- "lncRNA"
   
   df.cytNuc.fpkm80<- df.cytNuc[which(df.cytNuc$variable =="FPKM_80norm"),]
   #transcriptTotalConc
-  df.cytNuc.tpm<- df.cytNuc[which(df.cytNuc$variable =="TPM"),]
+  df.cytNuc.tpm<- df.cytNuc[which(df.cytNuc$variable =="tpm"),]
   
   
   
@@ -62,20 +99,20 @@ plotDifferenceBetweenRepseXpress <- function(infile=getFullPath("/data/eXpressCa
   ggplot(df.cytNuc.tpm, aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("eXpress\nTPM n\nLongPolyA only")+ 
-    geom_abline(slope=1,intercept=0)+ xlab("TPM rep1") + ylab("TPM rep2")
+    geom_abline(slope=1,intercept=0)+ xlab("log10(TPM rep1)") + ylab("log10(TPM rep2)")
   ggsave(paste0(outdir,"tpm-log-vsReps.png"), height=12,width=5)
   
   
   ggplot(df.cytNuc.fpkm80, aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("eXpress\nFPKM normalized by sum of middle 80 In\nLongPolyA only")+ 
-    geom_abline(slope=1,intercept=0)+ xlab("FPKM 80 norm. rep1") + ylab("FPKM 80 norm. rep2")
+    geom_abline(slope=1,intercept=0)+ xlab("log10(FPKM 80 norm. rep1)") + ylab("log10(FPKM 80 norm. rep2)")
   ggsave(paste0(outdir,"fpkm80-log-vsReps.png"), height=12,width=5)
   
   ggplot(df.cytNuc.fpkm, aes(x=log10(value.rep1),y=log10(value.rep2),color=region)) + geom_point() + 
     facet_grid(cell~localization,scale="free") + thisTheme +
     ggtitle("eXpress\nFPKM \nLongPolyA only")+ 
-    geom_abline(slope=1,intercept=0)+ xlab("FPKM rep1") + ylab("FPKM rep2")
+    geom_abline(slope=1,intercept=0)+ xlab("log10(FPKM rep1)") + ylab("log10(FPKM rep2)")
   ggsave(paste0(outdir,"fpkm-log-vsReps.png"), height=12,width=5)
   
   
@@ -119,9 +156,9 @@ plotDifferenceBetweenRepseXpress <- function(infile=getFullPath("/data/eXpressCa
   #   
   
   
-  m.df <- as.data.frame(group_by(df.cytNuc, cell, localization,variable,region) %.%
+  m.df <- as.data.frame(dplyr::group_by(df.cytNuc, cell, localization,variable,region) %>%
                           
-                          summarize(sum.rep1 = sum(value.rep1),
+                          dplyr::summarize(sum.rep1 = sum(value.rep1),
                                     sum.rep2 = sum(value.rep2),
                                     expr.rep1 = sum(value.rep1 > 0 ),
                                     expr.rep2 = sum(value.rep2 > 0 )))
@@ -131,16 +168,16 @@ plotDifferenceBetweenRepseXpress <- function(infile=getFullPath("/data/eXpressCa
   m.df$frac.rep1 = with(m.df, (sum.rep1)/(sum.rep1 + sum.rep2))
   
   
-  ggplot(melt.df[which(melt.df$variable %in% c("expr.rep1", "expr.rep2") & melt.df$measure == "TPM"),], aes(x=variable,y=value,fill=region)) + 
+  ggplot(melt.df[which(melt.df$variable %in% c("expr.rep1", "expr.rep2") & melt.df$measure == "tpm"),], aes(x=variable,y=value,fill=region)) + 
     geom_bar(stat="identity") +  xlab("replicates") + ylab("count") +
-    facet_grid(cell ~localization) 
+    facet_grid(cell ~localization) +
   ggtitle("eXpress\nnumber of genes with mapped reads")
   ggsave(paste0(outdir,"expr-cytNuc.png"), height=12,width=5)
   # localization vs. cell 
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) +  
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     facet_grid(localization~cell) + 
-    scale_x_discrete(limits=c("FPKM","TPM","FPKM_80norm"),
+    scale_x_discrete(limits=c("fpkm","tpm","FPKM_80norm"),
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
     thisTheme + ggtitle("eXpress\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\nfrac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
@@ -150,7 +187,7 @@ plotDifferenceBetweenRepseXpress <- function(infile=getFullPath("/data/eXpressCa
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     
-    scale_x_discrete(limits=c("FPKM","TPM","FPKM_80norm"),
+    scale_x_discrete(limits=c("fpkm","tpm","FPKM_80norm"),
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
     thisTheme2 + ggtitle("eXpress\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\n frac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
@@ -159,7 +196,7 @@ plotDifferenceBetweenRepseXpress <- function(infile=getFullPath("/data/eXpressCa
   ggplot(m.df, aes(x=measure,y=frac.rep1)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     
-    scale_x_discrete(limits=c("FPKM","TPM","FPKM_80norm"),
+    scale_x_discrete(limits=c("fpkm","tpm","FPKM_80norm"),
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
     thisTheme2 + ggtitle("eXpress\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\nfrac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
@@ -170,7 +207,7 @@ plotDifferenceBetweenRepseXpress <- function(infile=getFullPath("/data/eXpressCa
   ggplot(m.df, aes(x=measure,y=frac.rep1,color=region)) + 
     geom_boxplot() + geom_abline(slope=0,intercept=1/2,color="red") +
     facet_grid(~localization) + 
-    scale_x_discrete(limits=c("FPKM","TPM","FPKM_80norm"),
+    scale_x_discrete(limits=c("fpkm","tpm","FPKM_80norm"),
                      labels=c("FPKM", "TPM","FPKM_80")) + ylim(0,1) +
     thisTheme2 + ggtitle("eXpress\nfraction of cytosol & nucleus \nFPKM/TPM/FPKM_80\n frac.rep1=(rep1)/(rep1 + rep2)")+
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
@@ -283,12 +320,12 @@ ploteXpresscytFrac <- function(infile=getFullPath("/data/eXpressCapData-lpa-proc
   
   
   
-  df.cytNuc.fpkm <- df.cytNuc1[which(df.cytNuc1$variable =="FPKM"),]
+  df.cytNuc.fpkm <- df.cytNuc1[which(df.cytNuc1$variable =="fpkm"),]
   #df.cytNuc.fpkm[which(df.cytNuc.fpkm$gene_id %in% pc),"region"] <- "mRNA"
   #df.cytNuc.fpkm[which(df.cytNuc.fpkm$gene_id %in% lnc),"region"] <- "lncRNA"
   df.cytNuc.fpkm80<- df.cytNuc1[which(df.cytNuc1$variable =="FPKM_80norm"),]
   #transcriptTotalConc
-  df.cytNuc.tpm<- df.cytNuc1[which(df.cytNuc1$variable =="TPM"),]
+  df.cytNuc.tpm<- df.cytNuc1[which(df.cytNuc1$variable =="tpm"),]
   
   
   ggplot(df.cytNuc.tpm, aes(y=log10(value.ave.cyt*2 + value.ave.nuc*2),x=cytFrac,color=factor(region.cyt)))+

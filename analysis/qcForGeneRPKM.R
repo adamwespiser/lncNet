@@ -10,6 +10,7 @@ getReportsForGene <- function(){
   list(flux=readInTable(getFullPath("/data/fluxCapData-lpa-proc-REPORT.tab")),
        rpkmFromBam=readInTable(getFullPath("/data/rpkmFromBAMCapData-lpa-proc-REPORT.tab")),
        rsem=readInTable(getFullPath("/data/rsemCapData-lpa-proc-REPORT.tab")),
+       eXpress=readInTable(getFullPath("/data/eXpressCapData-lpa-proc-REPORT.tab")),
        rfgTopTransEx=readInTable(getFullPath("/data/rpkmFromBam-ExonCounting-TopTransCellType-RRPM-REPORT.tab")),
        rfgExUniqReads=readInTable(getFullPath("/data/rpkmFromBam-ExonCounting-TopTransCellType-UNIQ-RRPM-REPORT.tab")))}
 
@@ -18,9 +19,12 @@ plotRepQC <- function(){
   colNames <- c("cell", "localization", "replicate","genesFound", "experiment")
   flux=rep$flux[colNames]
   rsem=rep$rsem[colNames]
+  eXpress=rep$eXpress[colNames]
+  
   rpkmFromBam=rep$rpkmFromBam[colNames]
   flux$method = "flux"
   rsem$method = "rsem"
+  eXpress$method="eXpress"
   rpkmFromBam$method = "rpkmFromBam"
   rfgExUniqReads$metod = "rfgExUniqReads"
   comb <- rbind(flux,rsem,rpkmFromBam,rfgExUniqReads)
@@ -49,6 +53,7 @@ plotRepQC_meanRPKM <- function(){
   rfgExUniqReads=rep$rfgExUniqReads[c("cell", "localization","experiment", "replicate","genesExpressed", "meanRPKM","sumRPKM")]
   
   rsem=rep$rsem[c("cell", "localization","experiment", "replicate","genesExpressed", "meanFPKM","sumFPKM")]
+  eXpress=rep$eXpress[c("cell", "localization","experiment", "replicate","genesExpressed", "meanFPKM","sumFPKM")]
   
   
   colnames(flux) <- colNames
@@ -57,6 +62,8 @@ plotRepQC_meanRPKM <- function(){
   
   flux$method = "flux"
   rsem$method = "rsem"
+  eXpress$method = "eXpress"
+  
   rpkmFromBam$method = "rpkmFromBam"
   rfgTopTransEx$method = "rfgTopTransEx"
   rfgExUniqReads$method = "rfgExUniqReads"

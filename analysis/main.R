@@ -4,7 +4,8 @@ script.dir <- function() {
 }
 
 ### Start with project dir, and helper functions
-projectDir <- normalizePath(file.path(script.dir(), ".."))
+#projectDir <- normalizePath(file.path(script.dir(), ".."))
+projectDir <- "/home/wespisea/work/research//researchProjects/coexpr/lncNET/"
 getFullPath <- function(subpath){ file.path(projectDir, subpath) }
 
 homeFolder <- path.expand("~")
