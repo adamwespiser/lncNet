@@ -78,6 +78,13 @@ getRnaSeqFiles <- function(){
   df.comb$bowtieRsemResults <-  file.path(rnaseqdir, "bowtie","RSEM",paste0(df.comb$bare,".genes.results"))
   
   df.comb$rpkmFromBamOutput <- file.path(rnaseqdir, "star-transcriptome","RSEM","rpkmFromBam",df.comb$bare)
+  
+  df.comb$StarRsemStats <- paste0(df.comb$AlignedToTransRSEM,".stats")
+  df.comb$StarExpStats <- paste0(df.comb$AlignedToTrans,".stats")
+  df.comb$bowtieLongStats <- paste0(df.comb$bowtieBamLong,".stats")
+  
+  
+  
   df.comb
 }
   
@@ -150,40 +157,38 @@ mapStarExpress <- function(){
 
 mapStarRSEM <- function(){
   df.comb <- getRnaSeqFiles()
+  
+  
   o1 <- genStarAlignCmdTranscriptomeRSEM(df.comb$read1.fa,df.comb$read2.fa,df.comb$starOutputRSEM)
   o1.test <- ifNFileExists(df.comb$AlignedToTransRSEMFinalOut,o1)
-  
   o1.test1 <- ifNFileExists(df.comb$AlignedToTransRSEMFinalOut,paste0("echo ",o1))
   
-#   cmd2 <- paste0("rsem-calculate-expression -p 12 --paired-end --strand-specific --no-bam-output --estimate-rspd --bam  ",
-#                  df.comb$AlignedToTransRSEM, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
-#                  df.comb$rsemOutE2e)
-#   
-  cmd2 <- paste0("rsem-calculate-expression -p 12 --paired-end --strand-specific --no-bam-output --bam  --num-threads 8 --ci-memory 80960 ",
+
+  cmd2 <- paste0("rsem-calculate-expression -p 12 --paired-end --strand-specific --no-bam-output --bam  --num-threads 8 ",
                  df.comb$AlignedToTransRSEM, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
                  df.comb$rsemOutFr)
+  cmd2.test1 <- ifNFileExists(df.comb$AlignedToTransRSEMFinalOut,paste0(" echo ",cmd2))
   
-  #cmd2.test <-ifNFileExists(df.comb$starRsemResults,cmd2)
   
-  cleanUp <- ifFileExistsDelete(checkFile =df.comb$starRsemResults,  df.comb$AlignedToTransRSEM)
   
-  #cat(ifNFileExists(df.comb$starRsemResults, 'echo "hello"\n'))
+  cleanUp <- ifFileExistsDelete(checkFile =df.comb$AlignedToTransRSEMFinalOut,  df.comb$AlignedToTransRSEM)
+  cleanUp.test1 <- ifFileExists(df.comb$AlignedToTransRSEMFinalOut,paste0(" rm  ",df.comb$AlignedToTransRSEM))
   
-  write(o1.test, file="~/sandbox/starRsemMapReads")
+  write(o1.test1, file="~/sandbox/starRsemMapReads")
   scpFile(file.local="~/sandbox/starRsemMapReads", dir.remote="~/bin/")
   
-  write(cmd2, file="~/sandbox/starRsemQuant")
+  write(cmd2.test1, file="~/sandbox/starRsemQuant")
   scpFile(file.local="~/sandbox/starRsemQuant", dir.remote="~/bin/")
   
-  write(cleanUp, file="~/sandbox/starRsemClean")
+  write(cleanUp.test1, file="~/sandbox/starRsemClean")
   scpFile(file.local="~/sandbox/starRsemClean", dir.remote="~/bin/")
   
   
-  l1 <- 'cat ~/bin/starRsemMapReads | xargs -I{} perl /home/aw30w/bin/runJob.pl   -c 16 -m 3072 -W 240 -Q short -t "starRsemMapReads222" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/starRsem1'
-  l2 <- 'paste -d "#" /home/aw30w/log/starRsem1  ~/bin/starRsemQuant | xargs -I{} perl /home/aw30w/bin/runJobDep.pl   -c 8 -m 10576 -W 1000 -Q long -t "starRsemQuant222" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/starRsem2'
-  l3 <- 'paste -d "#" /home/aw30w/log/starRsem2  ~/bin/starRsemClean | xargs -I{} perl /home/aw30w/bin/runJobDep.pl   -c 1 -m 1057 -W 240 -Q short -t "starRsemClean" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/starRsem3'
+  l1 <- 'sh /home/aw30w/bin/starRsemMapReads | xargs -I{} perl /home/aw30w/bin/runJob.pl   -c 16 -m 4072 -W 1000 -Q long -t "srm_3" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/starRsem1'
+  l2 <- 'paste -d "#" /home/aw30w/log/starRsem1  <(sh /home/aw30w//bin/starRsemQuant) | xargs -I{} perl /home/aw30w/bin/runJobDep.pl   -c 8 -m 10576 -W 240 -Q short -t "srq_3" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/starRsem2'
+  l3 <- 'paste -d "#" /home/aw30w/log/starRsem2  <(sh /home/aw30w/bin/starRsemClean) | xargs -I{} perl /home/aw30w/bin/runJobDep.pl   -c 1 -m 1057 -W 240 -Q short -t "starRsemClean" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/starRsem3'
   
-  cat(l1,"\n",l2,"\n")
+  cat(l1,"\n",l2)
   #  ifNFileExists(df.comb$AlignedToTransRSEMFinalOut,paste("echo, \"found\" "))
 
   #cat(l1,"\n",l2,"\n",l3,"\n")
@@ -202,7 +207,7 @@ genBowtieForStarComp <- function(rd1,rd2,outfile){
 }
   
 genBowtieForStarComp2 <- function(rd1,rd2,outfile,params,
-                                  bowtieRef="/project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19/"){
+                                  bowtieRef="/project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19"){
   #/share/pkg/bowtie/1.0.0/bowtie -q --e 99999999 -l 25 -I 1 -X 1000 -p 16 -a -m 20 -S $rnaseqdata/rsem-ref/hg19gencodeV19 -1 read1.fastq -2 read2.fastq | /share/pkg/RSEM/1.2.11/sam/samtools view -S -b -o $rnaseqdata/rsem-hg19-gencodeV19-stranded/basefile.temp/basefile.bam
   
   paste0("/share/pkg/bowtie/1.0.0/bowtie",params, " ",
@@ -246,8 +251,7 @@ mapBowtieRSEMcompExpressTEST <- function(){
   genDirs2 <- paste0(collapse=" && ",paste0("mkdir -p ",c(testRsemOut2,testeXpressOut2)))
   
   #   -X 800 -p 16 -k 20 --offrate 1
-  test.bq2 <- genBowtieForStarComp2(testRd1,testRd2,testBowtieResult2,params="--X 800 -p 16 -k 20 --offrate 1 ",
-                                    ref="/project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.bedtools.getfasta.fa")
+  test.bq2 <- genBowtieForStarComp2(testRd1,testRd2,testBowtieResult2,params=" -S -X 800 -p 16 -k 20 --offrate 1 ")
   test.brq2 <- paste0("rsem-calculate-expression -p 12 --paired-end --no-bam-output --estimate-rspd --bam ",
                      testBowtieResult2, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
                      testRsemOut2)
@@ -269,34 +273,51 @@ mapBowtieRSEMcompExpressTEST <- function(){
 
 
 
-mapBowtieRSEMcompExpress <- function(long=FALSE,repl=FALSE){
+mapBowtieRSEMcompExpress <- function(long=FALSE,repl=FALSE,runNumber=2,INDEX="ALL"){
   df.comb <- getRnaSeqFiles()
   bowtieResult<- df.comb$bowtieBam
   
-  fileAppend <- ""
+  
+  if(identical(INDEX,"ALL")){
+    jobsIndex=seq_along(df.comb$bowtieBam)
+    
+  } else {
+    jobsIndex = INDEX
+    print("only using indexes of: ")
+    jobsIndex
+  }
+  
+  df.comb <- df.comb[jobsIndex,]
+  
+  fileAppend <- character(length=0)
   if (TRUE == long){
     fileAppend <- "long"
     bowtieResult <- df.comb$bowtieBamLong
   } 
-  o1 <- genBowtieForStarComp2(df.comb$read1.fa,df.comb$read2.fa,bowtieResult,params=" --X 800 -p 16 -k 20 --offrate 1 ",
-                             bowtieRef=" /project/umw_zhiping_weng/wespisea/gtf/gencode.v19.annotation.bedtools.getfasta.fa")
+  # try ?best "-n 
+  o1 <- genBowtieForStarComp2(df.comb$read1.fa,df.comb$read2.fa,bowtieResult,params=" -S -X 800 -p 16 -k 20 --offrate 1 ")
   o1.test <- ifNBothFilesExist(df.comb$bowtieExpressResults,df.comb$bowtieRsemResults,o1)
-  cmd2 <- paste0("rsem-calculate-expression -p 12 --paired-end --no-bam-output --estimate-rspd --bam ",
+ 
+  cmd2 <- paste0("rsem-calculate-expression -p 12 --paired-end --strand-specific --no-bam-output --estimate-rspd --bam ",
                  bowtieResult, " /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19 ",
                  df.comb$bowtieRsemOut)
   cmd2.test <- ifFileExists(df.comb$bowtieBam,ifNFileExists(df.comb$bowtieRsemResults, cmd2))
+  
   cmd3 <- paste0("/home/aw30w/bin/express-1.5.1-linux_x86_64/express  --no-update-check --fr-stranded ",
                  "--output-dir=", df.comb$bowtieExpressOut,
                  "  /project/umw_zhiping_weng/wespisea/rna-seq/rsem-ref/hg19gencodeV19.transcripts.fa ",
                  bowtieResult)
   cmd3.test <- ifFileExists(bowtieResult,ifNFileExists(df.comb$bowtieExpressResults, cmd3))
   
-  cleanUp <- ifFileExists(bowtieResult, ifFileExists(df.comb$bowtieExpressResults, paste("rm ", df.comb$bowtieBam)))
+  cleanUp <- ifFileExists(bowtieResult, 
+                          ifFileExists(df.comb$bowtieExpressResults, 
+                                       paste("rm ", df.comb$bowtieBam)))
+  
+  hpc.file.exists(df.comb$bowtieRsemResults)
   
   write(o1, file=paste0("~/sandbox/bowtieCompareMap",fileAppend))
   scpFile(file.local=paste0("~/sandbox/bowtieCompareMap",fileAppend), dir.remote="~/bin/")
   
-#7+5+7+8+5+7  
   write(cmd2, file=paste0("~/sandbox/bowtieCompareRSEM",fileAppend))
   scpFile(file.local=paste0("~/sandbox/bowtieCompareRSEM",fileAppend), dir.remote="~/bin/")
 
@@ -307,29 +328,36 @@ mapBowtieRSEMcompExpress <- function(long=FALSE,repl=FALSE){
   scpFile(file.local=paste0("~/sandbox/bowtieCompareCLEAN",fileAppend), dir.remote="~/bin/")
   
   
-  l1 <- 'cat ~/bin/bowtieCompareMap | xargs -I{} perl /home/aw30w/bin/runJob.pl   -c 16 -m 12072 -W 240 -Q short -t "bowtieCompareMap" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp1'
-  l2 <- 'paste -d "#" /home/aw30w/log/bowtieExp1  ~/bin/bowtieCompareRSEM | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 12 -m 12576 -W 240 -Q short -t "bowtieCompareRSEM" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp2'
-  l3 <- 'paste -d "#" /home/aw30w/log/bowtieExp1  ~/bin/bowtieCompareeXpress | xargs -I{} perl /home/aw30w/bin/runJobDep.pl -c 5 -m 24576 -W 240 -Q short -t "bowtieCompareeXpress" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp3'
-  l4 <- 'paste -d "#" /home/aw30w/log/bowtieExp2  ~/bin/bowtieCompareCLEAN | xargs -I{} perl /home/aw30w/bin/runJobDep.pl   -c 1 -m 1057 -W 240 -Q short -t "bowtieCompareCLEAN" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp4'
+#   l1 <- 'cat ~/bin/bowtieCompareMap | xargs -I{} perl /home/aw30w/bin/runJob.pl   -c 16 -m 12072 -W 240 -Q short -t "bowtieCompareMap" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp1'
+#   l2 <- 'paste -d "#" /home/aw30w/log/bowtieExp1  ~/bin/bowtieCompareRSEM | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 12 -m 12576 -W 240 -Q short -t "bowtieCompareRSEM" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp2'
+#   l3 <- 'paste -d "#" /home/aw30w/log/bowtieExp1  ~/bin/bowtieCompareeXpress | xargs -I{} perl /home/aw30w/bin/runJobDep.pl -c 5 -m 24576 -W 240 -Q short -t "bowtieCompareeXpress" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp3'
+#   l4 <- 'paste -d "#" /home/aw30w/log/bowtieExp2  ~/bin/bowtieCompareCLEAN | xargs -I{} perl /home/aw30w/bin/runJobDep.pl   -c 1 -m 1057 -W 240 -Q short -t "bowtieCompareCLEAN" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp4'
   
   
   
   if (TRUE == long){
-  l1 <- 'cat ~/bin/bowtieCompareMap | xargs -I{} perl /home/aw30w/bin/runJob.pl   -c 16 -m 12072 -W 720 -Q short -t "bowtieCompareMap" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp1'
-  l2 <- 'paste -d "#" /home/aw30w/log/bowtieExp1  ~/bin/bowtieCompareRSEM | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 12 -m 12576 -W 1000 -Q long -t "bowtieCompareRSEM" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp2'
-  l3 <- 'paste -d "#" /home/aw30w/log/bowtieExp1  ~/bin/bowtieCompareeXpress | xargs -I{} perl /home/aw30w/bin/runJobDep.pl -c 5 -m 10576 -W 1000 -Q long -t "bowtieCompareeXpress" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp3'
-  l4 <- 'paste -d "#" /home/aw30w/log/bowtieExp2  ~/bin/bowtieCompareCLEAN | xargs -I{} perl /home/aw30w/bin/runJobDep.pl   -c 1 -m 1057 -W 240 -Q short -t "bowtieCompareCLEAN" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp4'
+  l1 <- 'cat /home/aw30w/bin/bowtieCompareMap | xargs -I{} perl /home/aw30w/bin/runJob.pl   -c 16 -m 12072 -W 1440 -Q long -t "bmXXXX" -i "{}" | /home/aw30w/bin/getJobId |tee /home/aw30w/log/bowtieExp1_XXXX'
+  l2 <- 'paste -d "#" /home/aw30w/log/bowtieExp1_XXXX  /home/aw30w/bin/bowtieCompareRSEM | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 12 -m 12576 -W 1440 -Q long -t "brqXXXX" -i "{}" | /home/aw30w/bin/getJobId | tee /home/aw30w/log/bowtieExp2_XXXX'
+  l3 <- 'paste -d "#" /home/aw30w/log/bowtieExp1_XXXX  /home/aw30w/bin/bowtieCompareeXpress | xargs -I{} perl /home/aw30w/bin/runJobDep.pl -c 5 -m 10576 -W 1440 -Q long -t "beqXXXX" -i "{}" | /home/aw30w/bin/getJobId | tee /home/aw30w/log/bowtieExp3_XXXX'
+  l4 <- 'paste -d "#" /home/aw30w/log/bowtieExp2_XXXX  /home/aw30w/bin/bowtieCompareCLEAN | xargs -I{} perl /home/aw30w/bin/runJobDep.pl   -c 1 -m 1057 -W 240 -Q short -t "bcXXXX" -i "{}" | /home/aw30w/bin/getJobId | tee /home/aw30w/log/bowtieExp4_XXXX'
   t.all <- paste(gsub(pattern="bowtieCompareMap",x=l1,replace=paste0("bowtieCompareMap",fileAppend)),
                 gsub(pattern="bowtieCompareRSEM",x=l2,replace=paste0("bowtieCompareRSEM",fileAppend)),
                 gsub(pattern="bowtieCompareeXpress",x=l3,replace=paste0("bowtieCompareeXpress",fileAppend)),
                  sep="\n")
-  all <- gsub(x=t.all,pattern="bowtieExp",replacement="bowtieExp_long")
+  all.temp <- gsub(x=t.all,pattern="bowtieExp",replacement="bowtieExp_long")
+  all <- gsub(x=all.temp,pattern="XXXX",replacement=runNumber)
   
-  cat(all)
+
   
   write(all, file=paste0("~/sandbox/bowtieLong",fileAppend))
   scpFile(file.local=paste0("~/sandbox/bowtieLong",fileAppend), dir.remote="~/bin/")
- 
+  
+  if(TRUE == repl){
+    print("sh /home/aw30w/bin/bowtieLonglong")
+    cat(all) 
+  }
+  
+  # end long
   } else {
     l1 <- 'cat ~/bin/bowtieCompareMap | xargs -I{} perl /home/aw30w/bin/runJob.pl   -c 16 -m 12072 -W 240 -Q short -t "bowtieCompareMap" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp1'
     l2 <- 'paste -d "#" /home/aw30w/log/bowtieExp1  /home/aw30w//bin/bowtieCompareRSEM | xargs -I{} perl /home/aw30w/bin/runJobDep.pl  -c 12 -m 12576 -W 240 -Q short -t "bowtieCompareRSEM" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/bowtieExp2'
@@ -340,12 +368,26 @@ mapBowtieRSEMcompExpress <- function(long=FALSE,repl=FALSE){
     
     write(out, file=paste0("~/sandbox/bowtieRun",fileAppend))
     scpFile(file.local=paste0("~/sandbox/bowtieRun",fileAppend), dir.remote="~/bin/")
-    cat(l1,"\n",l2,"\n",l3,"\n")
-    
-  
+    if(TRUE == repl){
+      cat(l1,"\n",l2,"\n",l3,"\n")
+    }
   }
+}
+
+getBamStats <- function(){
+  
+  df.comb <- getRnaSeqFiles()
+  
+  # df.comb$AlignedToTransRSEMFinalOut
+  # df.comb$AlignedToTrans
+  # df.comb$bowtieBamLong
+  
+  
+  
   
 }
+
+
 
 #  [[ -s ~/ls.out ]] && echo "next" >> ~/ls.out && echo "next"
 #  [[ -s file1 ]] && rm file2 && rm file3
@@ -358,6 +400,37 @@ mapBowtieRSEMcompExpress <- function(long=FALSE,repl=FALSE){
 #STAR -> express 
 # express from bowtie needed
 # RSEM from bowtie
+
+
+# /home/aw30w/work/software/bam-parse/bin/test
+
+getCounts <- function(){
+  df.comb <- getRnaSeqFiles()
+  inputfiles <- c(
+  df.comb$AlignedToTransRSEM,
+  df.comb$bowtieBamLong)
+  outputfiles <- paste0(infiles, ".cnt")
+  cmd1 <- paste0("/home/aw30w/work/software/bam-parse/bin/test --inputfile ",inputfiles,
+                 " --outputfile ",outputfiles)
+  write(cmd1, file="~/sandbox/bamCount")
+  scpFile(file.local="~/sandbox/bamCount", dir.remote="~/bin/")
+  
+  
+  
+  l1 <- 'cat /home/aw30w/bin/bamCount | xargs -I{} perl /home/aw30w/bin/runJob.pl   -c 2 -m 4072 -W  240 -Q short -t "bc1" -i "{}" | /home/aw30w/bin/getJobId > /home/aw30w/log/starRsem1'
+  cat(l1)
+  
+  o1 <- genStarAlignCmdTranscriptome(df.comb$read1.fa,df.comb$read2.fa,paste0(starOutput,".star.sam"))
+  input <- df.comb$AlignedToTrans
+  output <- paste0(input,".cnt")
+  cmd2 <- paste0("/home/aw30w/work/software/bam-parse/bin/test --inputfile ",input,
+                 " --outputfile ",output)
+  cmd3 <- paste0("rm ",df.comb$AlignedToTrans)
+  write(paste(o1,cmd2,cmd3,sep=" && "), file="~/sandbox/star-bamCount")
+  scpFile(file.local="~/sandbox/star-bamCount", dir.remote="~/bin/")
+  l2 <- 'cat ~/bin/star-bamCount | xargs -I{} perl /home/aw30w/bin/runJob.pl  -c 16 -m 3072 -W 240 -Q short -t "statCount" -i "{}" | /home/aw30w/bin/getJobId > tmp111'
+  cat(l1,"\n",l2)
+}
 
 jobs <- function(){
   df.comb <- getRnaSeqFiles()
@@ -395,10 +468,13 @@ jobs <- function(){
  cat(beq.output, "\n",brq.output)
  
   
+  runIndex <- which(hpc.file.exists(df.comb$bowtieRsemResults) == FALSE)
+  mapBowtieRSEMcompExpress(long=TRUE,repl=TRUE,runNumber=4,INDEX=runIndex)
  
- 
- 
- 
+ df.comb$StarRsemStats <- paste0(df.comb$AlignedToTransRSEM,".stats")
+ df.comb$StarExpStats <- paste0(df.comb$AlignedToTrans,".stats")
+ df.comb$bowtieLongStats <- paste0(df.comb$bowtieBamLong,".stats")
+
 }
 
 

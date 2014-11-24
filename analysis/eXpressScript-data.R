@@ -24,7 +24,25 @@ apply80norm <- function(s){
   s/sum(s[which(s > lowerp & s < upperp)])
 }
 
-
+eXpress_remap_doit_bowtie <- function(){
+  rnaseqdir <<- "/project/umw_zhiping_weng/wespisea/rna-seq/"
+  local.dir <- "/home/wespisea/data/eXpress_bowtie/"
+  remote.dir <- file.path(rnaseqdir,"bowtie/eXpress")
+  out.file <- getFullPath("/data/eXpress-bowtie-lpa-proc.tab")
+  
+  geteXpressDataForOneCell( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",
+                            localDir = local.dir,
+                            remoteDir = remote.dir,
+                            getFile=TRUE,
+                            suffix=".results.xprs",
+                            remoteSuffix="results.xprs")
+  
+  
+  getDataTotalReadsBtwnReps_eXpress( reportFile=getFullPath("/data/eXpress-nofr-lpa-proc-REPORT.tab"),
+                                     localDir = local.dir,
+                                     remoteDir = remote.dir,
+                                     outFile = out.file)  
+}
 
 
 eXpress_remap_doit_2 <- function(){

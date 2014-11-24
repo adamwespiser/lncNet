@@ -9,6 +9,15 @@ zlab.scripts <<- "/home/wespisea/log/rscripts/"
 ghpc.scripts <<- "/home/aw30w/log/rscripts/"
 
 
+shCheckFile <- function(f){
+  paste0("[[ -s ",f," ]] && echo TRUE || echo FALSE")
+}
+
+
+hpc.file.exists <- function(f,...){
+  as.logical(hpc.system(shCheckFile(c(f,...))))
+}
+
 scpFile <- function(file.local, dir.remote){
   if(!file.exists(file.local)){
     stop("cannot transfer file that doesn't exist")
@@ -18,9 +27,7 @@ scpFile <- function(file.local, dir.remote){
   system(cmd)
 }
 
-
-# example with $ : hpc.system("echo \\$HOME") -> /home/aw30w
-hpc.system <- function(cmd){
+hpc.system.helper <- function(cmd){
   r.cmd <- pipe(paste("ssh",ghpc,"\"",cmd,"\""))
   str <- readLines(r.cmd)
   flush(r.cmd)
@@ -28,12 +35,18 @@ hpc.system <- function(cmd){
   rm(r.cmd)
   str
 }
+hpc.system <- function(cmd){
+  sapply(cmd,hpc.system.helper)  
+}
+
+# example with $ : hpc.system("echo \\$HOME") -> /home/aw30w
+
 hpc.system.nowait <- function(cmd){
   r.cmd <- paste("ssh",ghpc,"\"",cmd,"\"")
   system(r.cmd,wait=FALSE)
 }
 
-hpc.file.exists <- function(file){
+hpc.file.exists.old <- function(file){
   cmd <- paste("file ",file)
   result <- hpc.system(cmd)
   g.result <- grep(x=result, pattern="No such file or directory")
@@ -43,6 +56,11 @@ hpc.file.exists <- function(file){
     return(TRUE)
   }
 }
+
+hpc.file.exists <- function(f,...){
+  as.logical(hpc.system(shCheckFile(c(f,...))))
+}
+
 
 hpc.file.md5sum.helper <- function(file){
   if(!hpc.file.exists(file)){

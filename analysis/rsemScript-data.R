@@ -14,6 +14,76 @@ RSEM_remap_doit <- function(){
                                   outFile = getFullPath("/data/rsemCapData-v2-lpa-proc.tab"))  
 }
 
+
+RSEM_remap_doit_STAR <- function(){
+  
+  
+  dummy <- getRSEMDataForOneCell( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",
+                                              localDir = "/home/wespisea/data/RSEM-fr/",
+                                              remoteDir =  file.path(rnaseqdir,"/star-transcriptome/RSEM-fr"),
+                                              getFile=TRUE,
+                                              suffix=".genes.results")
+  
+  getDataTotalReadsBtwnReps_RSEM( reportFile=getFullPath("/data/rsemSTARmapped-lpa-proc-REPORT.tab"),
+                                  localDir = "/home/wespisea/data/RSEM-fr/",
+                                  remoteDir = file.path(rnaseqdir,"/star-transcriptome/RSEM-fr"),
+                                  outFile = getFullPath("/data/rsemSTARmapped-v1-lpa-proc.tab"))  
+  
+  
+  getReadDistro(localDir = "/home/wespisea/data/RSEM-fr-cnt/",
+                            remoteDir = file.path(rnaseqdir,"/star-transcriptome/RSEM-fr"),
+                            outFile = getFullPath("/data/rsemSTARmapped-v1-readDistro.tab"),
+                            filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab")
+}
+
+RSEM_remap_doit_rsem <- function(){
+  
+  
+  dummy <- getRSEMDataForOneCell( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",
+                                  localDir = "/home/wespisea/data/RSEM-self/",
+                                  remoteDir =  file.path(rnaseqdir,"/rsem-hg19-gencodeV19"),
+                                  getFile=TRUE,
+                                  suffix=".genes.results")
+  
+  getDataTotalReadsBtwnReps_RSEM( reportFile=getFullPath("/data/rsemRsemmapped-lpa-proc-REPORT.tab"),
+                                  localDir = "/home/wespisea/data/RSEM-self/",
+                                  remoteDir = file.path(rnaseqdir,"/rsem-hg19-gencodeV19"),
+                                  outFile = getFullPath("/data/rsemRsemmapped-v1-lpa-proc.tab"))  
+  
+  # re run
+  getReadDistro( localDir = "/home/wespisea/data/RSEM-self-cnt/",
+                 remoteDir = file.path(rnaseqdir,"rsem-hg19-gencodeV19"),
+                 outFile = getFullPath("/data/rsemRsemmapped-v1-readDistro.tab"),
+                filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab")
+}
+
+RSEM_remap_doit_bowtie <- function(){
+  local.dir <- "/home/wespisea/data/RSEM-bowtie/"
+  local.dir.reads <- "/home/wespisea/data/RSEM-bowtie-cnt/"
+  
+  remote.dir <- file.path(rnaseqdir,"/bowtie/RSEM")
+  report.file <- getFullPath("/data/rsemBowtiemapped-lpa-proc-REPORT.tab")
+  out.file <- getFullPath("/data/rsemBowtiemapped-v1-lpa-proc.tab")
+  out.file.reads <- getFullPath("/data/rsemBowtiemapped-v1-readDistro.tab")
+  
+  dummy <- getRSEMDataForOneCell( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",
+                                  localDir = local.dir,
+                                  remoteDir =  remote.dir,
+                                  getFile=TRUE,
+                                  suffix=".genes.results")
+  
+  getDataTotalReadsBtwnReps_RSEM( reportFile=report.file,
+                                  localDir = local.dir,
+                                  remoteDir = remote.dir,
+                                  outFile =out.file)  
+  
+  
+  getReadDistro( localDir =local.dir.reads,
+                 remoteDir = remote.dir,
+                 outFile = out.file.reads,
+                 filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab")
+}
+
 applyPseudoValByVar2 <- function(value,var){
   qFun <- function(x){
     x <- x[which(x > 0)]
@@ -34,7 +104,7 @@ getRSEMDataForOneCell <- function( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFil
   }
   
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
-  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol"))
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & rnaExtract == "longPolyA")
   read1 <- grep(df.fastq$filename,pattern="Rd1")
   read2 <- grep(df.fastq$filename,pattern="Rd2")
   
@@ -42,6 +112,7 @@ getRSEMDataForOneCell <- function( filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFil
   df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
   df.comb$bare <- gsub(gsub(df.comb$read1.filename,pattern="Rd1",replacement=""),pattern=".fastq.gz",replacement="")
   df.comb$remote <- paste0(remoteDir,"/",df.comb$bare,suffix)
+  df.comb <- within(df.comb,{remoteFound <- hpc.file.exists(remote)})
   
   if(TRUE == getFile){
     o1 <- paste0("scp aw30w@ghpcc06.umassrc.org:",df.comb$remote, "  ",localDir)
@@ -74,14 +145,14 @@ readInRSEMGtfParsed <- function(file="/home/wespisea/data/RSEM/wgEncodeCshlLongR
 
 
 
-getTranscriptData_RSEM <- function(celltype,rnaExtract,cellMissing=c("A549","IMR90"),
+getTranscriptData_RSEM <- function(celltype,rnaExtract="longPolyA",cellMissing=c(),
                                    localDir = "/home/wespisea/data/flux/",
                                    remoteDir = file.path(rnaseqdir,"starSpikeIn/flux-capacitorNIST14")){
   
   annot.df <- getRSEMDataForOneCell(filesTxtTab="~/data/wgEncodeCshlLongRnaSeqFiles.tab",
                                     localDir = localDir,
                                     remoteDir = remoteDir,
-                                    getFile=TRUE)
+                                    getFile=FALSE)
   
   if (!missing(celltype)){
     print("gathering all cell types")
@@ -124,21 +195,22 @@ getDataTotalReadsBtwnReps_RSEM <- function(reportFile=getFullPath("/data/rsemCap
                                          localDir = localDir,
                                          remoteDir = remoteDir)
   print("got df.together") 
-  report.df  <- as.data.frame(group_by(df.together,cell,localization,replicate) %.%
-                                summarise(length(gene_id),
+  report.df  <- as.data.frame(dplyr::group_by(df.together,cell,localization,replicate) %>%
+                                dplyr::summarise(length(gene_id),
                                           mean(TPM),
                                           sum(TPM),
                                           mean(FPKM),
                                           sum(FPKM),
-                                          sum(FPKM > 0)))
+                                          sum(FPKM > 0),
+                                          sum(expected_count)))
   report.df$experiment <- paste(ifelse(report.df$localization == "cytosol", "cyt", "nuc"),report.df$replicate,sep=".")
   colnames(report.df) <- c("cell", "localization", "replicate", "genesFound", "meanTPM", 
-                           "sumTPM", "meanFPKM", "sumFPKM", "genesExpressed", "experiment")
+                           "sumTPM", "meanFPKM", "sumFPKM", "genesExpressed","sum_expected_count", "experiment")
   exportAsTable(df=report.df, file = reportFile)
-  df.together <- as.data.frame(group_by(df.together, cell, localization,rnaExtract,replicate) %.% 
-                                 mutate(FPKM_80norm = apply80norm(FPKM) * 1000000))
+  df.together <- as.data.frame(dplyr::group_by(df.together, cell, localization,rnaExtract,replicate) %>% 
+                                 dplyr::mutate(FPKM_80norm = apply80norm(FPKM) * 1000000))
   
-  #  group_by(df.together, cell, localization,rnaExtract,replicate) %.% summarise(mean(RPKM_80norm/transTotalRPKM, na.rm=TRUE))
+  #  group_by(df.together, cell, localization,rnaExtract,replicate) %>% summarise(mean(RPKM_80norm/transTotalRPKM, na.rm=TRUE))
   
   exportAsTable(file=paste0(outFile,".all"), df=df.together)
   df.together$gene_type <- df.together$region
@@ -232,7 +304,7 @@ getReadDistro <- function(localDir = "/home/wespisea/data/RSEM-2-cnt/",
   }
   
   df <- read.csv(file=filesTxtTab, stringsAsFactors=FALSE, sep="\t")
-  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol"))
+  df.fastq <- subset(df,type=="fastq" & (localization == "nucleus" | localization == "cytosol") & rnaExtract == "longPolyA")
   read1 <- grep(df.fastq$filename,pattern="Rd1")
   read2 <- grep(df.fastq$filename,pattern="Rd2")
   df.comb <- data.frame(read1 = df.fastq[read1,], read2=df.fastq[read2,])
